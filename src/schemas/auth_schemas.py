@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate, validates, validates_schema, ValidationError
+from marshmallow import Schema, fields, validate, validates, validates_schema, ValidationError, pre_load
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from src.models.user import User
 from src.utils.helpers import is_valid_email, is_valid_phone
@@ -48,6 +48,24 @@ class RegisterSchema(Schema):
     insurance_provider = fields.Str(required=False, validate=validate.Length(max=100), allow_none=True)
     insurance_number = fields.Str(required=False, validate=validate.Length(max=50), allow_none=True)
     blood_type = fields.Str(required=False, validate=validate.Length(max=5), allow_none=True)
+    
+    @pre_load
+    def preprocess_data(self, data, **kwargs):
+        """Convert empty strings to None for optional fields."""
+        optional_fields = [
+            'date_of_birth', 'gender', 'pharmacy_name', 'pharmacy_name_ar',
+            'license_number', 'pharmacist_name', 'pharmacist_license',
+            'establishment_date', 'operating_hours', 'services',
+            'chronic_conditions', 'allergies', 'current_medications',
+            'emergency_contact', 'insurance_provider', 'insurance_number',
+            'blood_type'
+        ]
+        
+        for field in optional_fields:
+            if field in data and data[field] == '':
+                data[field] = None
+        
+        return data
     
     @validates_schema
     def validate_schema(self, data, **kwargs):
