@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate, validates, ValidationError
+from marshmallow import Schema, fields, validate, validates, validates_schema, ValidationError
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from src.models.user import User
 from src.utils.helpers import is_valid_email, is_valid_phone
@@ -49,33 +49,40 @@ class RegisterSchema(Schema):
     insurance_number = fields.Str(required=False, validate=validate.Length(max=50), allow_none=True)
     blood_type = fields.Str(required=False, validate=validate.Length(max=5), allow_none=True)
     
-    @validates('email')
-    def validate_email(self, value):
-        if not is_valid_email(value):
-            raise ValidationError('Invalid email format')
-    
-    @validates('phone')
-    def validate_phone(self, value):
-        if not is_valid_phone(value):
-            raise ValidationError('Invalid phone number format')
-    
-    @validates('password')
-    def validate_password(self, value):
-        if len(value) < 8:
-            raise ValidationError('Password must be at least 8 characters long')
-        if not any(c.isupper() for c in value):
-            raise ValidationError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in value):
-            raise ValidationError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in value):
-            raise ValidationError('Password must contain at least one digit')
-    
-    def validate(self, data, **kwargs):
+    @validates_schema
+    def validate_schema(self, data, **kwargs):
+        """Custom validation for the entire schema."""
         errors = {}
         
         # Check password confirmation
         if data.get('password') != data.get('confirm_password'):
             errors['confirm_password'] = ['Passwords do not match']
+        
+        # Validate email format using custom function
+        email = data.get('email')
+        if email and not is_valid_email(email):
+            errors['email'] = ['Invalid email format']
+        
+        # Validate phone format using custom function
+        phone = data.get('phone')
+        if phone and not is_valid_phone(phone):
+            errors['phone'] = ['Invalid phone number format']
+        
+        # Validate password strength
+        password = data.get('password')
+        if password:
+            password_errors = []
+            if len(password) < 8:
+                password_errors.append('Password must be at least 8 characters long')
+            if not any(c.isupper() for c in password):
+                password_errors.append('Password must contain at least one uppercase letter')
+            if not any(c.islower() for c in password):
+                password_errors.append('Password must contain at least one lowercase letter')
+            if not any(c.isdigit() for c in password):
+                password_errors.append('Password must contain at least one digit')
+            
+            if password_errors:
+                errors['password'] = password_errors
         
         # Validate pharmacy-specific fields
         if data.get('user_type') == 'pharmacy':
@@ -89,8 +96,6 @@ class RegisterSchema(Schema):
         
         if errors:
             raise ValidationError(errors)
-        
-        return data
 
 class EmailVerificationSchema(Schema):
     """Schema for email verification."""
@@ -106,27 +111,33 @@ class ResetPasswordSchema(Schema):
     new_password = fields.Str(required=True, validate=validate.Length(min=8, max=255))
     confirm_password = fields.Str(required=True)
     
-    @validates('new_password')
-    def validate_password(self, value):
-        if len(value) < 8:
-            raise ValidationError('Password must be at least 8 characters long')
-        if not any(c.isupper() for c in value):
-            raise ValidationError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in value):
-            raise ValidationError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in value):
-            raise ValidationError('Password must contain at least one digit')
-    
-    def validate(self, data, **kwargs):
+    @validates_schema
+    def validate_schema(self, data, **kwargs):
+        """Custom validation for password reset."""
         errors = {}
         
+        # Check password confirmation
         if data.get('new_password') != data.get('confirm_password'):
             errors['confirm_password'] = ['Passwords do not match']
         
+        # Validate password strength
+        password = data.get('new_password')
+        if password:
+            password_errors = []
+            if len(password) < 8:
+                password_errors.append('Password must be at least 8 characters long')
+            if not any(c.isupper() for c in password):
+                password_errors.append('Password must contain at least one uppercase letter')
+            if not any(c.islower() for c in password):
+                password_errors.append('Password must contain at least one lowercase letter')
+            if not any(c.isdigit() for c in password):
+                password_errors.append('Password must contain at least one digit')
+            
+            if password_errors:
+                errors['new_password'] = password_errors
+        
         if errors:
             raise ValidationError(errors)
-        
-        return data
 
 class ChangePasswordSchema(Schema):
     """Schema for changing password."""
@@ -134,30 +145,40 @@ class ChangePasswordSchema(Schema):
     new_password = fields.Str(required=True, validate=validate.Length(min=8, max=255))
     confirm_password = fields.Str(required=True)
     
-    @validates('new_password')
-    def validate_password(self, value):
-        if len(value) < 8:
-            raise ValidationError('Password must be at least 8 characters long')
-        if not any(c.isupper() for c in value):
-            raise ValidationError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in value):
-            raise ValidationError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in value):
-            raise ValidationError('Password must contain at least one digit')
-    
-    def validate(self, data, **kwargs):
+    @validates_schema
+    def validate_schema(self, data, **kwargs):
+        """Custom validation for password change."""
         errors = {}
         
+        # Check password confirmation
         if data.get('new_password') != data.get('confirm_password'):
             errors['confirm_password'] = ['Passwords do not match']
         
+        # Check if new password is different from current
         if data.get('current_password') == data.get('new_password'):
             errors['new_password'] = ['New password must be different from current password']
         
+        # Validate password strength
+        password = data.get('new_password')
+        if password:
+            password_errors = []
+            if len(password) < 8:
+                password_errors.append('Password must be at least 8 characters long')
+            if not any(c.isupper() for c in password):
+                password_errors.append('Password must contain at least one uppercase letter')
+            if not any(c.islower() for c in password):
+                password_errors.append('Password must contain at least one lowercase letter')
+            if not any(c.isdigit() for c in password):
+                password_errors.append('Password must contain at least one digit')
+            
+            if password_errors:
+                if 'new_password' in errors:
+                    errors['new_password'].extend(password_errors)
+                else:
+                    errors['new_password'] = password_errors
+        
         if errors:
             raise ValidationError(errors)
-        
-        return data
 
 class RefreshTokenSchema(Schema):
     """Schema for token refresh."""
