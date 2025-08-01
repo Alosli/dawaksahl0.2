@@ -11,7 +11,7 @@ class EmailService:
         self.sg = SendGridAPIClient(api_key=current_app.config.get('SENDGRID_API_KEY'))
         self.from_email = current_app.config.get('SENDGRID_FROM_EMAIL')
         self.from_name = current_app.config.get('SENDGRID_FROM_NAME')
-        self.frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:3000')
+        self.frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:5173')
     
     def send_email(self, to_email, subject, html_content, text_content=None):
         """Send email using SendGrid."""
