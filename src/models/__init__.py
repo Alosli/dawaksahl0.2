@@ -4,7 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 # Import all models to ensure they are registered with SQLAlchemy
-from src.models.user import User, UserAddress, UserMedicalInfo, DeviceToken
+from .user import (
+    db,
+    User,
+    UserAddress,
+    UserMedicalInfo,
+    PharmacyInfo,
+    find_nearby_pharmacies
+)
 from src.models.medication import Medication, MedicationCategory, PharmacyInventory
 from src.models.prescription import Prescription
 from src.models.order import Order, OrderItem
@@ -17,6 +24,8 @@ __all__ = [
     'User',
     'UserAddress', 
     'UserMedicalInfo',
+    'PharmacyInfo',
+    'find_nearby_pharmacies',
     'DeviceToken',
     'Pharmacy',
     'PharmacyDocument',
