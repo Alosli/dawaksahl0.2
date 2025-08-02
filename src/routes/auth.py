@@ -267,11 +267,16 @@ def forgot_password():
             current_app.logger.error(f"Failed to send password reset email: {e}")
     
     # Always return success for security
-    return success_response(
-        None,
-        "If the email exists, a password reset link has been sent",
-        "إذا كان البريد الإلكتروني موجوداً، فقد تم إرسال رابط إعادة تعيين كلمة المرور"
-    )
+        return success_response(
+            None,
+            "If the email exists, a password reset link has been sent",
+            "إذا كان البريد الإلكتروني موجوداً، فقد تم إرسال رابط إعادة تعيين كلمة المرور"
+        )
+    except ValidationError as e:
+        return error_response('Validation failed', 400, {'errors': e.messages})
+    except Exception as e:
+        current_app.logger.error(f"Forgot password error: {str(e)}")
+        return error_response('Something went wrong', 500)        
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
