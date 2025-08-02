@@ -18,7 +18,7 @@ class RegisterSchema(Schema):
     national_id = fields.Str(allow_none=True, validate=Length(max=20))
     
     # Address Information
-    country = fields.Str(missing='YE')  # Yemen default
+    country = fields.Str(load_default='YE')  # Yemen default
     city = fields.Str(required=True, validate=Length(min=1, max=100))
     district = fields.Str(required=True, validate=Length(min=1, max=100))
     street = fields.Str(required=True, validate=Length(min=1, max=255))  # Made required
