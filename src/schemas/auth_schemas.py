@@ -1,31 +1,31 @@
 from marshmallow import Schema, fields, validates_schema, ValidationError, pre_load
-from marshmallow.validate import OneOf
+from marshmallow.validate import OneOf, Length
 import re
 
 class RegisterSchema(Schema):
     # Basic User Information
     email = fields.Email(required=True)
-    password = fields.Str(required=True, validate=fields.Length(min=8))
+    password = fields.Str(required=True, validate=Length(min=8))
     confirm_password = fields.Str(required=True)
-    user_type = fields.Str(required=True, validate=fields.OneOf(['patient', 'pharmacy', 'doctor']))
+    user_type = fields.Str(required=True, validate=OneOf(['patient', 'pharmacy', 'doctor']))
     
     # Personal Information
-    first_name = fields.Str(required=True, validate=fields.Length(min=1, max=100))
-    last_name = fields.Str(required=True, validate=fields.Length(min=1, max=100))
+    first_name = fields.Str(required=True, validate=Length(min=1, max=100))
+    last_name = fields.Str(required=True, validate=Length(min=1, max=100))
     phone = fields.Str(required=True)
     date_of_birth = fields.Date(required=True)  # Made required to match frontend
-    gender = fields.Str(required=True, validate=fields.OneOf(['male', 'female']))  # Made required
-    national_id = fields.Str(allow_none=True, validate=fields.Length(max=20))
+    gender = fields.Str(required=True, validate=OneOf(['male', 'female']))  # Made required
+    national_id = fields.Str(allow_none=True, validate=Length(max=20))
     
     # Address Information
     country = fields.Str(missing='YE')  # Yemen default
-    city = fields.Str(required=True, validate=fields.Length(min=1, max=100))
-    district = fields.Str(required=True, validate=fields.Length(min=1, max=100))
-    street = fields.Str(required=True, validate=fields.Length(min=1, max=255))  # Made required
-    building_number = fields.Str(allow_none=True, validate=fields.Length(max=20))
-    postal_code = fields.Str(required=True, validate=fields.Length(max=20))  # Made required
-    floor_apartment = fields.Str(allow_none=True, validate=fields.Length(max=50))
-    landmark = fields.Str(allow_none=True, validate=fields.Length(max=200))
+    city = fields.Str(required=True, validate=Length(min=1, max=100))
+    district = fields.Str(required=True, validate=Length(min=1, max=100))
+    street = fields.Str(required=True, validate=Length(min=1, max=255))  # Made required
+    building_number = fields.Str(allow_none=True, validate=Length(max=20))
+    postal_code = fields.Str(required=True, validate=Length(max=20))  # Made required
+    floor_apartment = fields.Str(allow_none=True, validate=Length(max=50))
+    landmark = fields.Str(allow_none=True, validate=Length(max=200))
     special_delivery_instructions = fields.Str(allow_none=True)
     
     # GPS Coordinates - ESSENTIAL FOR DISTANCE CALCULATION
@@ -35,37 +35,37 @@ class RegisterSchema(Schema):
     longitude = fields.Float(allow_none=True)  # Will be extracted from coordinates
     
     # Medical Information (for patients)
-    blood_type = fields.Str(required=True, validate=fields.OneOf(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']))  # Made required
+    blood_type = fields.Str(required=True, validate=OneOf(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']))  # Made required
     chronic_conditions = fields.List(fields.Str(), allow_none=True)
     allergies = fields.List(fields.Str(), allow_none=True)
     current_medications = fields.List(fields.Str(), allow_none=True)
     
     # Emergency Contact Information
-    emergency_contact_name = fields.Str(required=True, validate=fields.Length(max=200))  # Made required
-    emergency_contact_phone = fields.Str(required=True, validate=fields.Length(max=20))  # Made required
-    emergency_contact_relation = fields.Str(required=True, validate=fields.OneOf(['spouse', 'parent', 'child', 'sibling', 'friend', 'other']))  # Made required
+    emergency_contact_name = fields.Str(required=True, validate=Length(max=200))  # Made required
+    emergency_contact_phone = fields.Str(required=True, validate=Length(max=20))  # Made required
+    emergency_contact_relation = fields.Str(required=True, validate=OneOf(['spouse', 'parent', 'child', 'sibling', 'friend', 'other']))  # Made required
     
     # Primary Doctor Information
-    primary_doctor_name = fields.Str(allow_none=True, validate=fields.Length(max=200))
-    primary_doctor_phone = fields.Str(allow_none=True, validate=fields.Length(max=20))
+    primary_doctor_name = fields.Str(allow_none=True, validate=Length(max=200))
+    primary_doctor_phone = fields.Str(allow_none=True, validate=Length(max=20))
     
     # Insurance Information
-    insurance_provider = fields.Str(allow_none=True, validate=fields.Length(max=100))
-    insurance_number = fields.Str(allow_none=True, validate=fields.Length(max=100))
-    insurance_coverage_type = fields.Str(allow_none=True, validate=fields.OneOf(['basic', 'comprehensive', 'premium']))
+    insurance_provider = fields.Str(allow_none=True, validate=Length(max=100))
+    insurance_number = fields.Str(allow_none=True, validate=Length(max=100))
+    insurance_coverage_type = fields.Str(allow_none=True, validate=OneOf(['basic', 'comprehensive', 'premium']))
     
     # Preferences
-    preferred_language = fields.Str(missing='ar', validate=fields.OneOf(['ar', 'en']))
-    delivery_time_preference = fields.Str(allow_none=True, validate=fields.OneOf(['morning', 'afternoon', 'evening', 'anytime']))
+    preferred_language = fields.Str(missing='ar', validate=OneOf(['ar', 'en']))
+    delivery_time_preference = fields.Str(allow_none=True, validate=OneOf(['morning', 'afternoon', 'evening', 'anytime']))
     accessibility_needs = fields.List(fields.Str(), allow_none=True)
     communication_preferences = fields.List(fields.Str(), allow_none=True)
     
     # Pharmacy-specific fields (for pharmacy registration)
-    pharmacy_name = fields.Str(allow_none=True, validate=fields.Length(max=200))
-    pharmacy_name_ar = fields.Str(allow_none=True, validate=fields.Length(max=200))
-    license_number = fields.Str(allow_none=True, validate=fields.Length(max=100))
-    pharmacist_name = fields.Str(allow_none=True, validate=fields.Length(max=200))
-    pharmacist_license = fields.Str(allow_none=True, validate=fields.Length(max=100))
+    pharmacy_name = fields.Str(allow_none=True, validate=Length(max=200))
+    pharmacy_name_ar = fields.Str(allow_none=True, validate=Length(max=200))
+    license_number = fields.Str(allow_none=True, validate=Length(max=100))
+    pharmacist_name = fields.Str(allow_none=True, validate=Length(max=200))
+    pharmacist_license = fields.Str(allow_none=True, validate=Length(max=100))
     establishment_date = fields.Date(allow_none=True)
     operating_hours = fields.Raw(allow_none=True)
     services = fields.List(fields.Str(), allow_none=True)
@@ -160,7 +160,7 @@ class ForgotPasswordSchema(Schema):
 
 class ResetPasswordSchema(Schema):
     token = fields.Str(required=True)
-    password = fields.Str(required=True, validate=fields.Length(min=8))
+    password = fields.Str(required=True, validate=Length(min=8))
     confirm_password = fields.Str(required=True)
     
     @validates_schema
@@ -170,7 +170,7 @@ class ResetPasswordSchema(Schema):
 
 class ChangePasswordSchema(Schema):
     current_password = fields.Str(required=True)
-    new_password = fields.Str(required=True, validate=fields.Length(min=8))
+    new_password = fields.Str(required=True, validate=Length(min=8))
     confirm_password = fields.Str(required=True)
     
     @validates_schema
