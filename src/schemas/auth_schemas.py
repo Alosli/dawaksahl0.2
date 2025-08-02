@@ -1,64 +1,100 @@
-from marshmallow import Schema, fields, validate, validates, validates_schema, ValidationError, pre_load
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from src.models.user import User
-from src.utils.helpers import is_valid_email, is_valid_phone
-
-class LoginSchema(Schema):
-    """Schema for user login validation."""
-    email = fields.Email(required=True, validate=validate.Length(max=120))
-    password = fields.Str(required=True, validate=validate.Length(min=6, max=255))
-    remember_me = fields.Bool(load_default=False)
+from marshmallow import Schema, fields, validates_schema, ValidationError, pre_load
+import re
 
 class RegisterSchema(Schema):
-    """Schema for user registration validation."""
-    # Basic info
-    email = fields.Email(required=True, validate=validate.Length(max=120))
-    password = fields.Str(required=True, validate=validate.Length(min=8, max=255))
+    # Basic User Information
+    email = fields.Email(required=True)
+    password = fields.Str(required=True, validate=fields.Length(min=8))
     confirm_password = fields.Str(required=True)
-    user_type = fields.Str(required=True, validate=validate.OneOf(['patient', 'pharmacy', 'doctor']))
-    first_name = fields.Str(required=True, validate=validate.Length(min=2, max=100))
-    last_name = fields.Str(required=True, validate=validate.Length(min=2, max=100))
-    phone = fields.Str(required=True, validate=validate.Length(max=20))
-    date_of_birth = fields.Date(required=False, allow_none=True)
-    gender = fields.Str(required=False, validate=validate.OneOf(['male', 'female']), allow_none=True)
+    user_type = fields.Str(required=True, validate=fields.OneOf(['patient', 'pharmacy', 'doctor']))
     
-    # Address info
-    country = fields.Str(load_default='SA', validate=validate.Length(max=10))
-    city = fields.Str(required=True, validate=validate.Length(max=100))
-    district = fields.Str(required=True, validate=validate.Length(max=100))
-    street = fields.Str(required=True, validate=validate.Length(max=255))
-    building_number = fields.Str(required=True, validate=validate.Length(max=20))
-    postal_code = fields.Str(required=True, validate=validate.Length(max=20))
+    # Personal Information
+    first_name = fields.Str(required=True, validate=fields.Length(min=1, max=100))
+    last_name = fields.Str(required=True, validate=fields.Length(min=1, max=100))
+    phone = fields.Str(required=True)
+    date_of_birth = fields.Date(required=True)  # Made required to match frontend
+    gender = fields.Str(required=True, validate=fields.OneOf(['male', 'female']))  # Made required
+    national_id = fields.Str(allow_none=True, validate=fields.Length(max=20))
     
-    # Pharmacy-specific fields
-    pharmacy_name = fields.Str(required=False, validate=validate.Length(max=200), allow_none=True)
-    pharmacy_name_ar = fields.Str(required=False, validate=validate.Length(max=200), allow_none=True)
-    license_number = fields.Str(required=False, validate=validate.Length(max=50), allow_none=True)
-    pharmacist_name = fields.Str(required=False, validate=validate.Length(max=200), allow_none=True)
-    pharmacist_license = fields.Str(required=False, validate=validate.Length(max=50), allow_none=True)
-    establishment_date = fields.Date(required=False, allow_none=True)
-    operating_hours = fields.Dict(required=False, allow_none=True)
-    services = fields.List(fields.Str(), required=False, allow_none=True)
+    # Address Information
+    country = fields.Str(missing='YE')  # Yemen default
+    city = fields.Str(required=True, validate=fields.Length(min=1, max=100))
+    district = fields.Str(required=True, validate=fields.Length(min=1, max=100))
+    street = fields.Str(required=True, validate=fields.Length(min=1, max=255))  # Made required
+    building_number = fields.Str(allow_none=True, validate=fields.Length(max=20))
+    postal_code = fields.Str(required=True, validate=fields.Length(max=20))  # Made required
+    floor_apartment = fields.Str(allow_none=True, validate=fields.Length(max=50))
+    landmark = fields.Str(allow_none=True, validate=fields.Length(max=200))
+    special_delivery_instructions = fields.Str(allow_none=True)
     
-    # Medical info for patients
-    chronic_conditions = fields.List(fields.Str(), required=False, allow_none=True)
-    allergies = fields.List(fields.Str(), required=False, allow_none=True)
-    current_medications = fields.List(fields.Str(), required=False, allow_none=True)
-    emergency_contact = fields.Str(required=False, validate=validate.Length(max=20), allow_none=True)
-    insurance_provider = fields.Str(required=False, validate=validate.Length(max=100), allow_none=True)
-    insurance_number = fields.Str(required=False, validate=validate.Length(max=50), allow_none=True)
-    blood_type = fields.Str(required=False, validate=validate.Length(max=5), allow_none=True)
+    # GPS Coordinates - ESSENTIAL FOR DISTANCE CALCULATION
+    coordinates = fields.Raw(allow_none=True)  # Accept the full coordinates object from frontend
+    formatted_address = fields.Str(allow_none=True)  # Google Maps formatted address
+    latitude = fields.Float(allow_none=True)  # Will be extracted from coordinates
+    longitude = fields.Float(allow_none=True)  # Will be extracted from coordinates
+    
+    # Medical Information (for patients)
+    blood_type = fields.Str(required=True, validate=fields.OneOf(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']))  # Made required
+    chronic_conditions = fields.List(fields.Str(), allow_none=True)
+    allergies = fields.List(fields.Str(), allow_none=True)
+    current_medications = fields.List(fields.Str(), allow_none=True)
+    
+    # Emergency Contact Information
+    emergency_contact_name = fields.Str(required=True, validate=fields.Length(max=200))  # Made required
+    emergency_contact_phone = fields.Str(required=True, validate=fields.Length(max=20))  # Made required
+    emergency_contact_relation = fields.Str(required=True, validate=fields.OneOf(['spouse', 'parent', 'child', 'sibling', 'friend', 'other']))  # Made required
+    
+    # Primary Doctor Information
+    primary_doctor_name = fields.Str(allow_none=True, validate=fields.Length(max=200))
+    primary_doctor_phone = fields.Str(allow_none=True, validate=fields.Length(max=20))
+    
+    # Insurance Information
+    insurance_provider = fields.Str(allow_none=True, validate=fields.Length(max=100))
+    insurance_number = fields.Str(allow_none=True, validate=fields.Length(max=100))
+    insurance_coverage_type = fields.Str(allow_none=True, validate=fields.OneOf(['basic', 'comprehensive', 'premium']))
+    
+    # Preferences
+    preferred_language = fields.Str(missing='ar', validate=fields.OneOf(['ar', 'en']))
+    delivery_time_preference = fields.Str(allow_none=True, validate=fields.OneOf(['morning', 'afternoon', 'evening', 'anytime']))
+    accessibility_needs = fields.List(fields.Str(), allow_none=True)
+    communication_preferences = fields.List(fields.Str(), allow_none=True)
+    
+    # Pharmacy-specific fields (for pharmacy registration)
+    pharmacy_name = fields.Str(allow_none=True, validate=fields.Length(max=200))
+    pharmacy_name_ar = fields.Str(allow_none=True, validate=fields.Length(max=200))
+    license_number = fields.Str(allow_none=True, validate=fields.Length(max=100))
+    pharmacist_name = fields.Str(allow_none=True, validate=fields.Length(max=200))
+    pharmacist_license = fields.Str(allow_none=True, validate=fields.Length(max=100))
+    establishment_date = fields.Date(allow_none=True)
+    operating_hours = fields.Raw(allow_none=True)
+    services = fields.List(fields.Str(), allow_none=True)
     
     @pre_load
     def preprocess_data(self, data, **kwargs):
-        """Convert empty strings to None for optional fields."""
+        """Preprocess data to handle frontend format."""
+        
+        # Extract coordinates if provided
+        if 'coordinates' in data and data['coordinates']:
+            coords = data['coordinates']
+            if isinstance(coords, dict):
+                data['latitude'] = coords.get('lat')
+                data['longitude'] = coords.get('lng')
+        
+        # Handle array fields that might be empty or contain 'none'/'no_allergies'
+        array_fields = ['chronic_conditions', 'allergies', 'current_medications', 
+                       'accessibility_needs', 'communication_preferences']
+        for field in array_fields:
+            if field in data:
+                if not data[field] or data[field] == ['none'] or data[field] == ['no_allergies']:
+                    data[field] = None
+        
+        # Convert empty strings to None for optional fields
         optional_fields = [
-            'date_of_birth', 'gender', 'pharmacy_name', 'pharmacy_name_ar',
-            'license_number', 'pharmacist_name', 'pharmacist_license',
-            'establishment_date', 'operating_hours', 'services',
-            'chronic_conditions', 'allergies', 'current_medications',
-            'emergency_contact', 'insurance_provider', 'insurance_number',
-            'blood_type'
+            'national_id', 'building_number', 'floor_apartment', 'landmark', 
+            'special_delivery_instructions', 'primary_doctor_name', 'primary_doctor_phone',
+            'insurance_provider', 'insurance_number', 'insurance_coverage_type',
+            'delivery_time_preference', 'pharmacy_name', 'pharmacy_name_ar', 
+            'license_number', 'pharmacist_name', 'pharmacist_license', 'establishment_date'
         ]
         
         for field in optional_fields:
@@ -68,169 +104,82 @@ class RegisterSchema(Schema):
         return data
     
     @validates_schema
-    def validate_schema(self, data, **kwargs):
-        """Custom validation for the entire schema."""
-        errors = {}
-        
-        # Check password confirmation
+    def validate_passwords_match(self, data, **kwargs):
         if data.get('password') != data.get('confirm_password'):
-            errors['confirm_password'] = ['Passwords do not match']
-        
-        # Validate email format using custom function
-        email = data.get('email')
-        if email and not is_valid_email(email):
-            errors['email'] = ['Invalid email format']
-        
-        # Validate phone format using custom function
+            raise ValidationError('Passwords do not match', 'confirm_password')
+    
+    @validates_schema
+    def validate_phone_format(self, data, **kwargs):
         phone = data.get('phone')
-        if phone and not is_valid_phone(phone):
-            errors['phone'] = ['Invalid phone number format']
-        
-        # Validate password strength
-        password = data.get('password')
-        if password:
-            password_errors = []
-            if len(password) < 8:
-                password_errors.append('Password must be at least 8 characters long')
-            if not any(c.isupper() for c in password):
-                password_errors.append('Password must contain at least one uppercase letter')
-            if not any(c.islower() for c in password):
-                password_errors.append('Password must contain at least one lowercase letter')
-            if not any(c.isdigit() for c in password):
-                password_errors.append('Password must contain at least one digit')
-            
-            if password_errors:
-                errors['password'] = password_errors
-        
-        # Validate pharmacy-specific fields
+        if phone:
+            # Remove spaces and check format
+            clean_phone = phone.replace(' ', '').replace('-', '')
+            if not re.match(r'^\+?[1-9]\d{1,14}$', clean_phone):
+                raise ValidationError('Invalid phone number format', 'phone')
+    
+    @validates_schema
+    def validate_emergency_contact_phone(self, data, **kwargs):
+        phone = data.get('emergency_contact_phone')
+        if phone:
+            # Remove spaces and check format
+            clean_phone = phone.replace(' ', '').replace('-', '')
+            if not re.match(r'^\+?[1-9]\d{1,14}$', clean_phone):
+                raise ValidationError('Invalid emergency contact phone number format', 'emergency_contact_phone')
+    
+    @validates_schema
+    def validate_pharmacy_fields(self, data, **kwargs):
         if data.get('user_type') == 'pharmacy':
-            required_pharmacy_fields = [
-                'pharmacy_name', 'pharmacy_name_ar', 'license_number',
-                'pharmacist_name', 'pharmacist_license', 'establishment_date'
-            ]
+            required_pharmacy_fields = ['pharmacy_name', 'license_number', 'pharmacist_name']
             for field in required_pharmacy_fields:
                 if not data.get(field):
-                    errors[field] = [f'{field} is required for pharmacy registration']
+                    raise ValidationError(f'{field} is required for pharmacy registration', field)
+    
+    @validates_schema
+    def validate_coordinates(self, data, **kwargs):
+        lat = data.get('latitude')
+        lng = data.get('longitude')
         
-        if errors:
-            raise ValidationError(errors)
+        # Coordinates are optional but if provided, both lat and lng must be valid
+        if lat is not None or lng is not None:
+            if lat is None or lng is None:
+                raise ValidationError('Both latitude and longitude must be provided together')
+            
+            if not (-90 <= lat <= 90):
+                raise ValidationError('Latitude must be between -90 and 90', 'latitude')
+            
+            if not (-180 <= lng <= 180):
+                raise ValidationError('Longitude must be between -180 and 180', 'longitude')
 
-class EmailVerificationSchema(Schema):
-    """Schema for email verification."""
-    token = fields.Str(required=True, validate=validate.Length(min=10, max=255))
+class LoginSchema(Schema):
+    email = fields.Email(required=True)
+    password = fields.Str(required=True)
 
 class ForgotPasswordSchema(Schema):
-    """Schema for forgot password request."""
-    email = fields.Email(required=True, validate=validate.Length(max=120))
+    email = fields.Email(required=True)
 
 class ResetPasswordSchema(Schema):
-    """Schema for password reset."""
-    token = fields.Str(required=True, validate=validate.Length(min=10, max=255))
-    new_password = fields.Str(required=True, validate=validate.Length(min=8, max=255))
+    token = fields.Str(required=True)
+    password = fields.Str(required=True, validate=fields.Length(min=8))
     confirm_password = fields.Str(required=True)
     
     @validates_schema
-    def validate_schema(self, data, **kwargs):
-        """Custom validation for password reset."""
-        errors = {}
-        
-        # Check password confirmation
-        if data.get('new_password') != data.get('confirm_password'):
-            errors['confirm_password'] = ['Passwords do not match']
-        
-        # Validate password strength
-        password = data.get('new_password')
-        if password:
-            password_errors = []
-            if len(password) < 8:
-                password_errors.append('Password must be at least 8 characters long')
-            if not any(c.isupper() for c in password):
-                password_errors.append('Password must contain at least one uppercase letter')
-            if not any(c.islower() for c in password):
-                password_errors.append('Password must contain at least one lowercase letter')
-            if not any(c.isdigit() for c in password):
-                password_errors.append('Password must contain at least one digit')
-            
-            if password_errors:
-                errors['new_password'] = password_errors
-        
-        if errors:
-            raise ValidationError(errors)
+    def validate_passwords_match(self, data, **kwargs):
+        if data.get('password') != data.get('confirm_password'):
+            raise ValidationError('Passwords do not match', 'confirm_password')
 
 class ChangePasswordSchema(Schema):
-    """Schema for changing password."""
     current_password = fields.Str(required=True)
-    new_password = fields.Str(required=True, validate=validate.Length(min=8, max=255))
+    new_password = fields.Str(required=True, validate=fields.Length(min=8))
     confirm_password = fields.Str(required=True)
     
     @validates_schema
-    def validate_schema(self, data, **kwargs):
-        """Custom validation for password change."""
-        errors = {}
-        
-        # Check password confirmation
+    def validate_passwords_match(self, data, **kwargs):
         if data.get('new_password') != data.get('confirm_password'):
-            errors['confirm_password'] = ['Passwords do not match']
-        
-        # Check if new password is different from current
-        if data.get('current_password') == data.get('new_password'):
-            errors['new_password'] = ['New password must be different from current password']
-        
-        # Validate password strength
-        password = data.get('new_password')
-        if password:
-            password_errors = []
-            if len(password) < 8:
-                password_errors.append('Password must be at least 8 characters long')
-            if not any(c.isupper() for c in password):
-                password_errors.append('Password must contain at least one uppercase letter')
-            if not any(c.islower() for c in password):
-                password_errors.append('Password must contain at least one lowercase letter')
-            if not any(c.isdigit() for c in password):
-                password_errors.append('Password must contain at least one digit')
-            
-            if password_errors:
-                if 'new_password' in errors:
-                    errors['new_password'].extend(password_errors)
-                else:
-                    errors['new_password'] = password_errors
-        
-        if errors:
-            raise ValidationError(errors)
+            raise ValidationError('New passwords do not match', 'confirm_password')
 
-class RefreshTokenSchema(Schema):
-    """Schema for token refresh."""
-    refresh_token = fields.Str(required=False, allow_none=True)
+class EmailVerificationSchema(Schema):
+    token = fields.Str(required=True)
 
-# Response schemas
-class UserResponseSchema(SQLAlchemyAutoSchema):
-    """Schema for user response."""
-    class Meta:
-        model = User
-        load_instance = True
-        exclude = ('password_hash', 'email_verification_token', 'password_reset_token')
-
-class LoginResponseSchema(Schema):
-    """Schema for login response."""
-    success = fields.Bool()
-    message = fields.Str()
-    message_ar = fields.Str()
-    access_token = fields.Str()
-    refresh_token = fields.Str()
-    user = fields.Nested(UserResponseSchema)
-    expires_in = fields.Int()
-
-class RegisterResponseSchema(Schema):
-    """Schema for registration response."""
-    success = fields.Bool()
-    message = fields.Str()
-    message_ar = fields.Str()
-    user = fields.Nested(UserResponseSchema)
-    verification_required = fields.Bool()
-
-class MessageResponseSchema(Schema):
-    """Schema for simple message responses."""
-    success = fields.Bool()
-    message = fields.Str()
-    message_ar = fields.Str()
+class ResendVerificationSchema(Schema):
+    email = fields.Email(required=True)
 
