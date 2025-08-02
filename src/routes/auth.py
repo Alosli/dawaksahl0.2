@@ -11,7 +11,7 @@ from src.schemas.auth_schemas import (
     EmailVerificationSchema, PasswordResetRequestSchema, PasswordResetSchema
 )
 from src.services.email_service import EmailService
-from src.utils.helpers import create_response, generate_token,
+from src.utils.helpers import create_response, generate_token
 from src.utils.error_handlers import handle_validation_error
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
