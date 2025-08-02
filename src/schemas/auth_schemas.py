@@ -200,7 +200,7 @@ class UserRegisterSchema(Schema):
     insurance_expiry = fields.Date()
     
     # Preferences
-    preferred_language = fields.Str(validate=OneOf(['ar', 'en']), default='ar')
+    preferred_language = fields.Str(validate=OneOf(['ar', 'en']), load_default='ar')
     preferred_pharmacy_id = fields.Int()
     
     @pre_load
