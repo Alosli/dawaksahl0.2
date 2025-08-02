@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
@@ -11,8 +12,7 @@ from src.schemas.auth_schemas import (
     EmailVerificationSchema, PasswordResetRequestSchema, PasswordResetSchema
 )
 from src.services.email_service import EmailService
-from src.utils.helpers import create_response, generate_token
-from src.utils.error_handlers import handle_validation_error
+from src.utils.helpers import success_response, error_response, generate_token
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -23,10 +23,10 @@ def register():
         data = request.get_json()
         
         if not data:
-            return create_response(
-                success=False,
-                message='No data provided',
-                status_code=400
+            return error_response(
+                'No data provided',
+                'لم يتم توفير بيانات',
+                400
             )
         
         user_type = data.get('user_type', 'patient')
@@ -41,20 +41,20 @@ def register():
         try:
             validated_data = schema.load(data)
         except ValidationError as err:
-            return create_response(
-                success=False,
-                message='Validation failed',
-                data={'errors': err.messages},
-                status_code=400
+            return error_response(
+                'Validation failed',
+                'فشل في التحقق من صحة البيانات',
+                400,
+                err.messages
             )
         
         # Check if user already exists
         existing_user = User.query.filter_by(email=validated_data['email']).first()
         if existing_user:
-            return create_response(
-                success=False,
-                message='User with this email already exists',
-                status_code=409
+            return error_response(
+                'User with this email already exists',
+                'المستخدم بهذا البريد الإلكتروني موجود بالفعل',
+                409
             )
         
         # Start database transaction
@@ -168,24 +168,23 @@ def register():
             # Commit transaction
             db.session.commit()
             
-            # Send verification email
-            # Send verification email
+            # Send verification email using EmailService
             try:
                 email_service = EmailService()
-                email_service.send_verification_email(user)
+                email_service.send_verification_email(user.email, user.email_verification_token)
             except Exception as e:
                 current_app.logger.error(f"Failed to send verification email: {str(e)}")
                 # Don't fail registration if email fails
             
-            return create_response(
-                success=True,
-                message=f'{user_type.title()} registered successfully. Please check your email for verification.',
+            return success_response(
                 data={
                     'user_id': user.id,
                     'email': user.email,
                     'user_type': user.user_type,
                     'verification_required': True
                 },
+                message=f'{user_type.title()} registered successfully. Please check your email for verification.',
+                message_ar=f'تم تسجيل {user_type} بنجاح. يرجى التحقق من بريدك الإلكتروني للتحقق.',
                 status_code=201
             )
             
@@ -194,33 +193,33 @@ def register():
             
             # Handle specific integrity errors
             if 'license_number' in str(e.orig):
-                return create_response(
-                    success=False,
-                    message='A pharmacy with this license number already exists',
-                    status_code=409
+                return error_response(
+                    'A pharmacy with this license number already exists',
+                    'صيدلية بهذا رقم الترخيص موجودة بالفعل',
+                    409
                 )
             else:
-                return create_response(
-                    success=False,
-                    message='Registration failed due to duplicate data',
-                    status_code=409
+                return error_response(
+                    'Registration failed due to duplicate data',
+                    'فشل التسجيل بسبب بيانات مكررة',
+                    409
                 )
         
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Registration error: {str(e)}")
-            return create_response(
-                success=False,
-                message='Registration failed due to server error',
-                status_code=500
+            return error_response(
+                'Registration failed due to server error',
+                'فشل التسجيل بسبب خطأ في الخادم',
+                500
             )
     
     except Exception as e:
         current_app.logger.error(f"Registration endpoint error: {str(e)}")
-        return create_response(
-            success=False,
-            message='Internal server error',
-            status_code=500
+        return error_response(
+            'Internal server error',
+            'خطأ داخلي في الخادم',
+            500
         )
 
 @auth_bp.route('/login', methods=['POST'])
@@ -234,44 +233,49 @@ def login():
         user = User.query.filter_by(email=data['email']).first()
         
         if not user or not user.check_password(data['password']):
-            return create_response(
-                success=False,
-                message='Invalid email or password',
-                status_code=401
+            return error_response(
+                'Invalid email or password',
+                'بريد إلكتروني أو كلمة مرور غير صحيحة',
+                401
             )
         
         if not user.is_active:
-            return create_response(
-                success=False,
-                message='Account is deactivated',
-                status_code=403
+            return error_response(
+                'Account is deactivated',
+                'الحساب معطل',
+                403
             )
         
         # Update last login
         user.last_login = datetime.utcnow()
         db.session.commit()
         
-        # Generate token
-        token = generate_token(user.id)
+        # Generate JWT token
+        access_token = create_access_token(identity=user.id)
         
-        return create_response(
-            success=True,
-            message='Login successful',
+        return success_response(
             data={
-                'token': token,
+                'access_token': access_token,
                 'user': user.to_dict(),
                 'requires_verification': not user.is_verified
-            }
+            },
+            message='Login successful',
+            message_ar='تم تسجيل الدخول بنجاح'
         )
         
     except ValidationError as err:
-        return handle_validation_error(err)
+        return error_response(
+            'Validation failed',
+            'فشل في التحقق من صحة البيانات',
+            400,
+            err.messages
+        )
     except Exception as e:
         current_app.logger.error(f"Login error: {str(e)}")
-        return create_response(
-            success=False,
-            message='Login failed',
-            status_code=500
+        return error_response(
+            'Login failed',
+            'فشل تسجيل الدخول',
+            500
         )
 
 @auth_bp.route('/verify-email', methods=['POST'])
@@ -285,10 +289,10 @@ def verify_email():
         user = User.query.filter_by(email_verification_token=data['token']).first()
         
         if not user:
-            return create_response(
-                success=False,
-                message='Invalid or expired verification token',
-                status_code=400
+            return error_response(
+                'Invalid or expired verification token',
+                'رمز التحقق غير صحيح أو منتهي الصلاحية',
+                400
             )
         
         # Verify user
@@ -296,20 +300,25 @@ def verify_email():
         user.email_verification_token = None
         db.session.commit()
         
-        return create_response(
-            success=True,
+        return success_response(
+            data={'user': user.to_dict()},
             message='Email verified successfully',
-            data={'user': user.to_dict()}
+            message_ar='تم التحقق من البريد الإلكتروني بنجاح'
         )
         
     except ValidationError as err:
-        return handle_validation_error(err)
+        return error_response(
+            'Validation failed',
+            'فشل في التحقق من صحة البيانات',
+            400,
+            err.messages
+        )
     except Exception as e:
         current_app.logger.error(f"Email verification error: {str(e)}")
-        return create_response(
-            success=False,
-            message='Email verification failed',
-            status_code=500
+        return error_response(
+            'Email verification failed',
+            'فشل التحقق من البريد الإلكتروني',
+            500
         )
 
 @auth_bp.route('/resend-verification', methods=['POST'])
@@ -320,26 +329,26 @@ def resend_verification():
         email = data.get('email')
         
         if not email:
-            return create_response(
-                success=False,
-                message='Email is required',
-                status_code=400
+            return error_response(
+                'Email is required',
+                'البريد الإلكتروني مطلوب',
+                400
             )
         
         user = User.query.filter_by(email=email).first()
         
         if not user:
-            return create_response(
-                success=False,
-                message='User not found',
-                status_code=404
+            return error_response(
+                'User not found',
+                'المستخدم غير موجود',
+                404
             )
         
         if user.is_verified:
-            return create_response(
-                success=False,
-                message='Email is already verified',
-                status_code=400
+            return error_response(
+                'Email is already verified',
+                'البريد الإلكتروني محقق بالفعل',
+                400
             )
         
         # Generate new token if needed
@@ -347,20 +356,29 @@ def resend_verification():
             user.email_verification_token = str(uuid.uuid4())
             db.session.commit()
         
-        # Send verification email
-        send_verification_email(user.email, user.email_verification_token)
+        # Send verification email using EmailService
+        try:
+            email_service = EmailService()
+            email_service.send_verification_email(user.email, user.email_verification_token)
+        except Exception as e:
+            current_app.logger.error(f"Failed to send verification email: {str(e)}")
+            return error_response(
+                'Failed to send verification email',
+                'فشل في إرسال بريد التحقق',
+                500
+            )
         
-        return create_response(
-            success=True,
-            message='Verification email sent successfully'
+        return success_response(
+            message='Verification email sent successfully',
+            message_ar='تم إرسال بريد التحقق بنجاح'
         )
         
     except Exception as e:
         current_app.logger.error(f"Resend verification error: {str(e)}")
-        return create_response(
-            success=False,
-            message='Failed to send verification email',
-            status_code=500
+        return error_response(
+            'Failed to send verification email',
+            'فشل في إرسال بريد التحقق',
+            500
         )
 
 @auth_bp.route('/forgot-password', methods=['POST'])
@@ -379,24 +397,32 @@ def forgot_password():
             user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
             db.session.commit()
             
-            # Send reset email
-            email_service = EmailService()
-            email_service.send_password_reset_email(user)
+            # Send reset email using EmailService
+            try:
+                email_service = EmailService()
+                email_service.send_password_reset_email(user.email, reset_token)
+            except Exception as e:
+                current_app.logger.error(f"Failed to send password reset email: {str(e)}")
         
-            # Always return success to prevent email enumeration
-        return create_response(
-            success=True,
-            message='If the email exists, a password reset link has been sent'
+        # Always return success to prevent email enumeration
+        return success_response(
+            message='If the email exists, a password reset link has been sent',
+            message_ar='إذا كان البريد الإلكتروني موجود، فقد تم إرسال رابط إعادة تعيين كلمة المرور'
         )
         
     except ValidationError as err:
-        return handle_validation_error(err)
+        return error_response(
+            'Validation failed',
+            'فشل في التحقق من صحة البيانات',
+            400,
+            err.messages
+        )
     except Exception as e:
         current_app.logger.error(f"Password reset request error: {str(e)}")
-        return create_response(
-            success=False,
-            message='Password reset request failed',
-            status_code=500
+        return error_response(
+            'Password reset request failed',
+            'فشل طلب إعادة تعيين كلمة المرور',
+            500
         )
 
 @auth_bp.route('/reset-password', methods=['POST'])
@@ -410,10 +436,10 @@ def reset_password():
         user = User.query.filter_by(password_reset_token=data['token']).first()
         
         if not user or not user.password_reset_expires or user.password_reset_expires < datetime.utcnow():
-            return create_response(
-                success=False,
-                message='Invalid or expired reset token',
-                status_code=400
+            return error_response(
+                'Invalid or expired reset token',
+                'رمز إعادة التعيين غير صحيح أو منتهي الصلاحية',
+                400
             )
         
         # Update password
@@ -422,69 +448,114 @@ def reset_password():
         user.password_reset_expires = None
         db.session.commit()
         
-        return create_response(
-            success=True,
-            message='Password reset successfully'
+        return success_response(
+            message='Password reset successfully',
+            message_ar='تم إعادة تعيين كلمة المرور بنجاح'
         )
         
     except ValidationError as err:
-        return handle_validation_error(err)
+        return error_response(
+            'Validation failed',
+            'فشل في التحقق من صحة البيانات',
+            400,
+            err.messages
+        )
     except Exception as e:
         current_app.logger.error(f"Password reset error: {str(e)}")
-        return create_response(
-            success=False,
-            message='Password reset failed',
-            status_code=500
+        return error_response(
+            'Password reset failed',
+            'فشل إعادة تعيين كلمة المرور',
+            500
         )
 
 @auth_bp.route('/profile', methods=['GET'])
+@jwt_required()
 def get_profile():
     """Get user profile (requires authentication)"""
     try:
-        # This would require authentication middleware
-        # For now, return a placeholder
-        return create_response(
-            success=False,
-            message='Authentication required',
-            status_code=401
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return error_response(
+                'User not found',
+                'المستخدم غير موجود',
+                404
+            )
+        
+        return success_response(
+            data={'user': user.to_dict()},
+            message='Profile retrieved successfully',
+            message_ar='تم استرداد الملف الشخصي بنجاح'
         )
         
     except Exception as e:
         current_app.logger.error(f"Get profile error: {str(e)}")
-        return create_response(
-            success=False,
-            message='Failed to get profile',
-            status_code=500
+        return error_response(
+            'Failed to get profile',
+            'فشل في الحصول على الملف الشخصي',
+            500
         )
 
-# Error handlers
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required()
+def refresh_token():
+    """Refresh access token"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user or not user.is_active:
+            return error_response(
+                'Invalid user',
+                'مستخدم غير صحيح',
+                401
+            )
+        
+        # Generate new access token
+        access_token = create_access_token(identity=user.id)
+        
+        return success_response(
+            data={'access_token': access_token},
+            message='Token refreshed successfully',
+            message_ar='تم تحديث الرمز المميز بنجاح'
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f"Token refresh error: {str(e)}")
+        return error_response(
+            'Token refresh failed',
+            'فشل تحديث الرمز المميز',
+            500
+        )
+
+# Error handlers for this blueprint
 @auth_bp.errorhandler(ValidationError)
 def handle_marshmallow_error(e):
     """Handle Marshmallow validation errors"""
-    return create_response(
-        success=False,
-        message='Validation failed',
-        data={'errors': e.messages},
-        status_code=400
+    return error_response(
+        'Validation failed',
+        'فشل في التحقق من صحة البيانات',
+        400,
+        e.messages
     )
 
 @auth_bp.errorhandler(400)
 def handle_bad_request(e):
     """Handle bad request errors"""
-    return create_response(
-        success=False,
-        message='Bad request',
-        status_code=400
+    return error_response(
+        'Bad request',
+        'طلب غير صحيح',
+        400
     )
 
 @auth_bp.errorhandler(500)
 def handle_internal_error(e):
     """Handle internal server errors"""
     current_app.logger.error(f"Internal server error: {str(e)}")
-    return create_response(
-        success=False,
-        message='Internal server error',
-        status_code=500
+    return error_response(
+        'Internal server error',
+        'خطأ داخلي في الخادم',
+        500
     )
-
 
