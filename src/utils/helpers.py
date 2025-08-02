@@ -278,3 +278,12 @@ def mask_phone(phone):
     
     return phone[:2] + '*' * (len(phone) - 4) + phone[-2:]
 
+def create_response(success=True, message="", data=None, status_code=200):
+    response = {
+        "success": success,
+        "message": message,
+    }
+    if data is not None:
+        response["data"] = data
+    return response, status_code
+
