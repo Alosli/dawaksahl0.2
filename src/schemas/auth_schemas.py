@@ -55,7 +55,7 @@ class RegisterSchema(Schema):
     insurance_coverage_type = fields.Str(allow_none=True, validate=OneOf(['basic', 'comprehensive', 'premium']))
     
     # Preferences
-    preferred_language = fields.Str(missing='ar', validate=OneOf(['ar', 'en']))
+    preferred_language = fields.Str(load_default='ar', validate=OneOf(['ar', 'en']))
     delivery_time_preference = fields.Str(allow_none=True, validate=OneOf(['morning', 'afternoon', 'evening', 'anytime']))
     accessibility_needs = fields.List(fields.Str(), allow_none=True)
     communication_preferences = fields.List(fields.Str(), allow_none=True)
