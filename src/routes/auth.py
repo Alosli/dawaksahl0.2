@@ -13,8 +13,12 @@ from src.schemas.auth_schemas import (
     ResetPasswordSchema, ChangePasswordSchema, EmailVerificationSchema,
     ResendVerificationSchema
 )
-from src.services.email_service import send_verification_email, send_password_reset_email
-from src.utils.helpers import success_response, error_response
+from src.utils.helpers import (
+    hash_password, check_password, generate_token, 
+    success_response, error_response, validate_json_request,
+    get_current_user
+)
+from src.services.email_service import EmailService
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -99,23 +103,30 @@ def register():
         
         # Send verification email
         try:
-            send_verification_email(user.email, user.email_verification_token)
+            email_service = EmailService()
+            email_service.send_verification_email(user)
         except Exception as e:
-            current_app.logger.error(f"Failed to send verification email: {str(e)}")
+            current_app.logger.error(f"Failed to send verification email: {e}")
             # Don't fail registration if email fails
         
-        return success_response({
-            'message': 'User registered successfully. Please check your email for verification.',
-            'user': user.to_dict(),
-            'requires_verification': True
-        }, 201)
+        return success_response(
+            {
+                'user': user.to_dict(),
+                'verification_required': True
+            },
+            "Registration successful. Please check your email for verification.",
+            "تم التسجيل بنجاح. يرجى التحقق من بريدك الإلكتروني للتحقق.",
+            201
+        )
         
-    except ValidationError as e:
-        return error_response('Validation failed', 400, {'errors': e.messages})
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Registration error: {str(e)}")
-        return error_response('Registration failed', 500)
+        current_app.logger.error(f"Registration error: {e}")
+        return error_response(
+            "Registration failed. Please try again.",
+            "فشل التسجيل. يرجى المحاولة مرة أخرى.",
+            500
+        )
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -250,19 +261,17 @@ def forgot_password():
         
         # Send reset email
         try:
-            send_password_reset_email(user.email, user.password_reset_token)
+            email_service = EmailService()
+            email_service.send_password_reset_email(user)
         except Exception as e:
-            current_app.logger.error(f"Failed to send password reset email: {str(e)}")
-        
-        return success_response({
-            'message': 'If an account with this email exists, a password reset link has been sent.'
-        })
-        
-    except ValidationError as e:
-        return error_response('Validation failed', 400, {'errors': e.messages})
-    except Exception as e:
-        current_app.logger.error(f"Forgot password error: {str(e)}")
-        return error_response('Failed to process password reset request', 500)
+            current_app.logger.error(f"Failed to send password reset email: {e}")
+    
+    # Always return success for security
+    return success_response(
+        None,
+        "If the email exists, a password reset link has been sent",
+        "إذا كان البريد الإلكتروني موجوداً، فقد تم إرسال رابط إعادة تعيين كلمة المرور"
+    )
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
