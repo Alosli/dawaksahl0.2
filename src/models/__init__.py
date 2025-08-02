@@ -5,7 +5,7 @@ db = SQLAlchemy()
 
 # Import all models to ensure they are registered with SQLAlchemy
 from src.models.user import User, UserAddress, UserMedicalInfo, DeviceToken
-from src.models.pharmacy import User, UserAddress, UsermediaclInfo, PharmacyInfo
+from src.models.pharmacy import User, UserAddress, ‎UserMedicalInfo‎, PharmacyInfo
 from src.models.medication import Medication, MedicationCategory, PharmacyInventory
 from src.models.prescription import Prescription
 from src.models.order import Order, OrderItem
