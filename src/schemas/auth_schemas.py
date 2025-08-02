@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validates_schema, ValidationError, pre_load
+from marshmallow.validate import OneOf
 import re
 
 class RegisterSchema(Schema):
