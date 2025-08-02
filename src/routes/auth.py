@@ -10,7 +10,7 @@ from src.schemas.auth_schemas import (
     PharmacyRegisterSchema, UserRegisterSchema, LoginSchema, 
     EmailVerificationSchema, PasswordResetRequestSchema, PasswordResetSchema
 )
-from src.services.email_service import send_verification_email, send_password_reset_email
+from src.services.email_service import EmailService
 from src.utils.helpers import create_response, generate_token, verify_token
 from src.utils.error_handlers import handle_validation_error
 
@@ -169,8 +169,10 @@ def register():
             db.session.commit()
             
             # Send verification email
+            # Send verification email
             try:
-                send_verification_email(user.email, user.email_verification_token)
+                email_service = EmailService()
+                email_service.send_verification_email(user)
             except Exception as e:
                 current_app.logger.error(f"Failed to send verification email: {str(e)}")
                 # Don't fail registration if email fails
@@ -378,9 +380,10 @@ def forgot_password():
             db.session.commit()
             
             # Send reset email
-            send_password_reset_email(user.email, reset_token)
+            email_service = EmailService()
+            email_service.send_password_reset_email(user)
         
-        # Always return success to prevent email enumeration
+            # Always return success to prevent email enumeration
         return create_response(
             success=True,
             message='If the email exists, a password reset link has been sent'
