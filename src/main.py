@@ -4,18 +4,17 @@ from flask_jwt_extended import JWTManager
 from datetime import timedelta
 import os
 
+from src.config import Config
 from src.models import db, migrate
 
-from src.config import Config, ProductionConfig
-
-def create_app(config_class=None):
+def create_app(config_class=Config):
     """Application factory pattern"""
-    # Auto-select config based on environment
-    if config_class is None:
-        config_class = ProductionConfig if os.environ.get('FLASK_ENV') == 'production' else Config
-    
     app = Flask(__name__)
     app.config.from_object(config_class)
+    
+    # Initialize extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
     
     # Configure CORS
     CORS(app, 
@@ -145,7 +144,7 @@ def create_app(config_class=None):
     return app
 
 # Create app instance
-app = create_app(ProductionConfig)
+app = create_app()
 
 if __name__ == '__main__':
     # Development server
