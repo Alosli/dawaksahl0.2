@@ -38,8 +38,8 @@ class Conversation(db.Model):
     is_muted = db.Column(db.Boolean, default=False)
     auto_close_after_hours = db.Column(db.Integer, default=24)
     
-    # Metadata
-    metadata = db.Column(db.Text)  # JSON for additional data
+    # meta_data
+    meta_data = db.Column(db.Text)  # JSON for additional data
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -51,21 +51,21 @@ class Conversation(db.Model):
     participants = db.relationship('ChatParticipant', backref='conversation', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('Message', backref='conversation', lazy='dynamic', cascade='all, delete-orphan')
     
-    def get_metadata(self):
-        """Get metadata as dictionary"""
-        if self.metadata:
+    def get_meta_data(self):
+        """Get meta_data as dictionary"""
+        if self.meta_data:
             try:
-                return json.loads(self.metadata)
+                return json.loads(self.meta_data)
             except:
                 return {}
         return {}
     
-    def set_metadata(self, data):
-        """Set metadata from dictionary"""
+    def set_meta_data(self, data):
+        """Set meta_data from dictionary"""
         if data:
-            self.metadata = json.dumps(data, ensure_ascii=False)
+            self.meta_data = json.dumps(data, ensure_ascii=False)
         else:
-            self.metadata = None
+            self.meta_data = None
     
     def add_participant(self, user_id=None, pharmacy_id=None, role='member'):
         """Add participant to conversation"""
@@ -155,9 +155,9 @@ class Conversation(db.Model):
         self.closed_at = datetime.utcnow()
         
         if reason:
-            metadata = self.get_metadata()
-            metadata['close_reason'] = reason
-            self.set_metadata(metadata)
+            meta_data = self.get_meta_data()
+            meta_data['close_reason'] = reason
+            self.set_meta_data(meta_data)
     
     def should_auto_close(self):
         """Check if conversation should be auto-closed"""
@@ -183,7 +183,7 @@ class Conversation(db.Model):
             'is_muted': self.is_muted,
             'participants': self.get_participants_list(),
             'unread_count': self.get_unread_count(current_user_id, current_pharmacy_id),
-            'metadata': self.get_metadata(),
+            'meta_data': self.get_meta_data(),
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'last_message_at': self.last_message_at.isoformat() if self.last_message_at else None,
@@ -263,8 +263,8 @@ class Message(db.Model):
     reply_to_message_id = db.Column(db.String(36), db.ForeignKey('messages.id'))
     thread_id = db.Column(db.String(36))
     
-    # Metadata
-    metadata = db.Column(db.Text)  # JSON for additional data
+    # meta_data
+    meta_data = db.Column(db.Text)  # JSON for additional data
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -277,21 +277,21 @@ class Message(db.Model):
     sender_pharmacy = db.relationship('Pharmacy', foreign_keys=[sender_pharmacy_id])
     reply_to = db.relationship('Message', remote_side=[id], backref='replies')
     
-    def get_metadata(self):
-        """Get metadata as dictionary"""
-        if self.metadata:
+    def get_meta_data(self):
+        """Get meta_data as dictionary"""
+        if self.meta_data:
             try:
-                return json.loads(self.metadata)
+                return json.loads(self.meta_data)
             except:
                 return {}
         return {}
     
-    def set_metadata(self, data):
-        """Set metadata from dictionary"""
+    def set_meta_data(self, data):
+        """Set meta_data from dictionary"""
         if data:
-            self.metadata = json.dumps(data, ensure_ascii=False)
+            self.meta_data = json.dumps(data, ensure_ascii=False)
         else:
-            self.metadata = None
+            self.meta_data = None
     
     def get_sender_info(self):
         """Get sender information"""
@@ -377,7 +377,7 @@ class Message(db.Model):
             'thread_id': self.thread_id,
             'related_order_id': self.related_order_id,
             'related_product_id': self.related_product_id,
-            'metadata': self.get_metadata(),
+            'meta_data': self.get_meta_data(),
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'edited_at': self.edited_at.isoformat() if self.edited_at else None,

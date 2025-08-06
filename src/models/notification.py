@@ -64,8 +64,8 @@ class Notification(db.Model):
     send_push = db.Column(db.Boolean, default=True)
     send_in_app = db.Column(db.Boolean, default=True)
     
-    # Metadata
-    metadata = db.Column(db.Text)  # JSON for additional data
+    # meta_data
+    meta_data = db.Column(db.Text)  # JSON for additional data
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -73,21 +73,21 @@ class Notification(db.Model):
     read_at = db.Column(db.DateTime)
     sent_at = db.Column(db.DateTime)
     
-    def get_metadata(self):
-        """Get metadata as dictionary"""
-        if self.metadata:
+    def get_meta_data(self):
+        """Get meta_data as dictionary"""
+        if self.meta_data:
             try:
-                return json.loads(self.metadata)
+                return json.loads(self.meta_data)
             except:
                 return {}
         return {}
     
-    def set_metadata(self, data):
-        """Set metadata from dictionary"""
+    def set_meta_data(self, data):
+        """Set meta_data from dictionary"""
         if data:
-            self.metadata = json.dumps(data, ensure_ascii=False)
+            self.meta_data = json.dumps(data, ensure_ascii=False)
         else:
-            self.metadata = None
+            self.meta_data = None
     
     def get_action_data(self):
         """Get action data as dictionary"""
@@ -236,7 +236,7 @@ class Notification(db.Model):
                 'icon': self.get_icon(),
                 'color': self.get_color()
             },
-            'metadata': self.get_metadata(),
+            'meta_data': self.get_meta_data(),
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'read_at': self.read_at.isoformat() if self.read_at else None,
