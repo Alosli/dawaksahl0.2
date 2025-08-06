@@ -10,13 +10,9 @@ class Config:
     # Basic Flask Configuration
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dawaksahl-super-secret-key-2025'
     
-    # Database configuration
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}"
+    # Database Configuration
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-    }
+    SQLALCHEMY_RECORD_QUERIES = True
     
     # JWT Configuration
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-string'
@@ -90,28 +86,50 @@ class Config:
         pass
 
 class DevelopmentConfig(Config):
-    """Development configuration."""
+    """Development configuration"""
     DEBUG = True
-    TESTING = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+        f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'dawaksahl_dev.db')}"
+    
+    # Relaxed settings for development
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
+    EMAIL_VERIFICATION_REQUIRED = False
+    
+    # Development logging
+    LOG_LEVEL = 'DEBUG'
 
 class ProductionConfig(Config):
-    """Production configuration."""
+    """Production configuration"""
     DEBUG = False
-    TESTING = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'dawaksahl.db')}"
     
-    # Use PostgreSQL in production
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'postgresql://user:password@localhost/dawaksahl'
+    # Strict settings for production
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)
+    EMAIL_VERIFICATION_REQUIRED = True
     
-    # Stricter security in production
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
+    # Production logging
+    LOG_LEVEL = 'WARNING'
+    
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+        
+        # Log to syslog in production
+        import logging
+        from logging.handlers import SysLogHandler
+        syslog_handler = SysLogHandler()
+        syslog_handler.setLevel(logging.WARNING)
+        app.logger.addHandler(syslog_handler)
 
 class TestingConfig(Config):
-    """Testing configuration."""
+    """Testing configuration"""
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
+    
+    # Fast settings for testing
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+    EMAIL_VERIFICATION_REQUIRED = False
     WTF_CSRF_ENABLED = False
 
 # Configuration dictionary

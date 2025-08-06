@@ -115,7 +115,7 @@ class Pharmacy(db.Model):
     last_login = db.Column(db.DateTime)
     
     # Relationships
-    products = db.relationship('Product', backref='pharmacy', lazy='dynamic', cascade='all, delete-orphan')
+    products = db.relationship('Product', backref='pharmacy', lazy='dynamic', cascade='all, delete-orphan',foreign_keys='Product.pharmacy_id')
     orders = db.relationship('Order', backref='pharmacy', lazy='dynamic')
     reviews = db.relationship('Review', backref='pharmacy', lazy='dynamic')
     notifications = db.relationship('Notification', backref='pharmacy', lazy='dynamic', cascade='all, delete-orphan')
