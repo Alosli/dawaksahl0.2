@@ -1,11 +1,8 @@
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_sqlalchemy import SQLAlchemy
 import uuid
 import json
 
-# Initialize db here to avoid circular imports
-db = SQLAlchemy()
 
 class User(db.Model):
     """Consolidated User model - stores ALL patient data in one table"""

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from src.models.user import db
+from src.models import db
 import uuid
 import json
 

@@ -3,7 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
-from src.models.user import db, User
+from src.models.user import User
+from src.models import db
 from src.services.auth_service import AuthService
 
 users_bp = Blueprint('users', __name__)

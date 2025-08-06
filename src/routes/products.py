@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from sqlalchemy import or_, and_, func
 from datetime import datetime
 
-from src.models.user import db
+from src.models import db
 from src.models.product import Product
 from src.models.category import Category
 from src.models.pharmacy import Pharmacy

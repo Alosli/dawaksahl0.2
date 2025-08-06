@@ -133,13 +133,7 @@ def create_app(config_class=Config):
             'message_ar': 'خطأ داخلي في الخادم'
         }), 500
     
-    # Create database tables
-    with app.app_context():
-        try:
-            db.create_all()
-            app.logger.info("Database tables created successfully")
-        except Exception as e:
-            app.logger.error(f"Failed to create database tables: {str(e)}")
+    
     
     return app
 

@@ -6,7 +6,8 @@ import uuid
 import secrets
 import re
 
-from src.models.user import db, User
+from src.models.user import User
+from src.models import db
 from src.models.pharmacy import Pharmacy
 from src.services.email_service import EmailService
 from src.services.auth_service import AuthService
