@@ -5,7 +5,7 @@ from datetime import timedelta
 import os
 
 from src.config import Config
-from src.models import db, migrate
+from src.config import ProductionConfig as Config
 
 def create_app(config_class=Config):
     """Application factory pattern"""
