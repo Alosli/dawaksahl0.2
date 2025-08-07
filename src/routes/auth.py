@@ -68,10 +68,14 @@ def register():
                 password_hash=generate_password_hash(password),
                 first_name=data.get('first_name', ''),
                 last_name=data.get('last_name', ''),
-                phone_number=data.get('phone_number', ''),
+                phone=data.get('phone', ''),
                 preferred_language=data.get('preferred_language', 'ar'),
                 email_verification_token=secrets.token_urlsafe(32),
-                email_verification_expires=datetime.utcnow() + timedelta(hours=24)
+                email_verification_expires=datetime.utcnow() + timedelta(hours=24),
+                address_line1=data.get('street', ''),
+                city=data.get('city', ''),
+                state=data.get('district', ''),
+                country=data.get('country', 'Yemen')
             )
             
             db.session.add(user)
@@ -98,9 +102,15 @@ def register():
                 password_hash=generate_password_hash(password),
                 pharmacy_name=data.get('pharmacy_name', ''),
                 pharmacy_name_ar=data.get('pharmacy_name_ar', ''),
-                contact_person=data.get('contact_person', ''),
-                phone_number=data.get('phone_number', ''),
+                pharmacist_name=data.get('pharmacist_name', ''),
+                phone=data.get('phone', ''),
                 license_number=data.get('license_number', ''),
+                pharmacist_license=data.get('pharmacist_license', ''),
+                # Map address fields correctly:
+                address_line1=data.get('street', ''),
+                city=data.get('city', ''),
+                state=data.get('district', ''),
+                country=data.get('country', 'Yemen'),
                 preferred_language=data.get('preferred_language', 'ar'),
                 email_verification_token=secrets.token_urlsafe(32),
                 email_verification_expires=datetime.utcnow() + timedelta(hours=24),
