@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import uuid
 import secrets
 import re
+import json
 
 from src.models.user import User
 from src.models import db
@@ -62,20 +63,53 @@ def register():
             }), 409
         
         if user_type == 'patient':
-            # Register patient
+            # Register patient with ALL fields from UserRegister_PERFECT.jsx
             user = User(
                 email=email,
                 password_hash=generate_password_hash(password),
+                
+                # Personal Information
                 first_name=data.get('first_name', ''),
                 last_name=data.get('last_name', ''),
                 phone=data.get('phone', ''),
+                date_of_birth=datetime.strptime(data.get('date_of_birth'), '%Y-%m-%d').date() if data.get('date_of_birth') else None,
+                gender=data.get('gender'),
+                
+                # Address Information (mapped correctly)
+                address_line1=data.get('address_line1', ''),
+                address_line2=data.get('address_line2', ''),
+                city=data.get('city', ''),
+                state=data.get('state', ''),
+                postal_code=data.get('postal_code', ''),
+                country=data.get('country', 'Yemen'),
+                
+                # Coordinates
+                latitude=data.get('latitude'),
+                longitude=data.get('longitude'),
+                
+                # Medical Information (JSON fields)
+                blood_type=data.get('blood_type'),
+                allergies=data.get('allergies', '[]'),  # Already JSON string from frontend
+                chronic_conditions=data.get('chronic_conditions', '[]'),  # Already JSON string
+                current_medications=data.get('current_medications', '[]'),  # Already JSON string
+                
+                # Emergency Contact
+                emergency_contact_name=data.get('emergency_contact_name', ''),
+                emergency_contact_phone=data.get('emergency_contact_phone', ''),
+                emergency_contact_relationship=data.get('emergency_contact_relationship', ''),
+                
+                # Insurance Information
+                insurance_provider=data.get('insurance_provider', ''),
+                insurance_number=data.get('insurance_number', ''),
+                
+                # Preferences
                 preferred_language=data.get('preferred_language', 'ar'),
+                
+                # Email verification
                 email_verification_token=secrets.token_urlsafe(32),
                 email_verification_expires=datetime.utcnow() + timedelta(hours=24),
-                address_line1=data.get('street', ''),
-                city=data.get('city', ''),
-                state=data.get('district', ''),
-                country=data.get('country', 'Yemen')
+                is_email_verified=False,
+                email_verified=False
             )
             
             db.session.add(user)
@@ -84,6 +118,7 @@ def register():
             # Send verification email
             try:
                 EmailService.send_verification_email(user.email, user.email_verification_token, user.preferred_language)
+                current_app.logger.info(f"Verification email sent to {user.email}")
             except Exception as e:
                 current_app.logger.error(f"Failed to send verification email: {str(e)}")
             
@@ -96,24 +131,53 @@ def register():
             }), 201
             
         elif user_type == 'pharmacy':
-            # Register pharmacy
+            # Register pharmacy with ALL fields from PharmacyRegister_PERFECT.jsx
             pharmacy = Pharmacy(
                 email=email,
                 password_hash=generate_password_hash(password),
+                
+                # Business Information
                 pharmacy_name=data.get('pharmacy_name', ''),
                 pharmacy_name_ar=data.get('pharmacy_name_ar', ''),
-                pharmacist_name=data.get('pharmacist_name', ''),
-                phone=data.get('phone', ''),
                 license_number=data.get('license_number', ''),
+                pharmacist_name=data.get('pharmacist_name', ''),
                 pharmacist_license=data.get('pharmacist_license', ''),
-                # Map address fields correctly:
-                address_line1=data.get('street', ''),
+                
+                # Contact Information
+                phone=data.get('phone', ''),
+                website=data.get('website', ''),
+                
+                # Address Information (mapped correctly)
+                address_line1=data.get('address_line1', ''),
+                address_line2=data.get('address_line2', ''),
                 city=data.get('city', ''),
-                state=data.get('district', ''),
+                state=data.get('state', ''),
+                postal_code=data.get('postal_code', ''),
                 country=data.get('country', 'Yemen'),
+                
+                # Coordinates
+                latitude=data.get('latitude'),
+                longitude=data.get('longitude'),
+                
+                # Business Details
+                establishment_date=datetime.strptime(data.get('establishment_date'), '%Y-%m-%d').date() if data.get('establishment_date') else None,
+                description=data.get('description', ''),
+                description_ar=data.get('description_ar', ''),
+                
+                # Services & Operations (JSON fields - already strings from frontend)
+                services=data.get('services', '[]'),
+                operating_hours=data.get('operating_hours', '{}'),
+                
+                # Preferences
                 preferred_language=data.get('preferred_language', 'ar'),
+                
+                # Email verification
                 email_verification_token=secrets.token_urlsafe(32),
                 email_verification_expires=datetime.utcnow() + timedelta(hours=24),
+                is_email_verified=False,
+                email_verified=False,
+                
+                # Pharmacy approval status
                 verification_status='pending'  # Pharmacies need approval
             )
             
@@ -123,6 +187,7 @@ def register():
             # Send verification email
             try:
                 EmailService.send_pharmacy_verification_email(pharmacy.email, pharmacy.email_verification_token, pharmacy.preferred_language)
+                current_app.logger.info(f"Pharmacy verification email sent to {pharmacy.email}")
             except Exception as e:
                 current_app.logger.error(f"Failed to send verification email: {str(e)}")
             
@@ -169,7 +234,8 @@ def login():
         # Try to find user first
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password_hash, password):
-            if not user.is_email_verified:
+            # Check email verification using the correct field names
+            if not user.is_email_verified and not user.email_verified:
                 return jsonify({
                     'success': False,
                     'message': 'Please verify your email before logging in',
@@ -209,7 +275,8 @@ def login():
         # Try to find pharmacy
         pharmacy = Pharmacy.query.filter_by(email=email).first()
         if pharmacy and check_password_hash(pharmacy.password_hash, password):
-            if not pharmacy.is_email_verified:
+            # Check email verification using the correct field names
+            if not pharmacy.is_email_verified and not pharmacy.email_verified:
                 return jsonify({
                     'success': False,
                     'message': 'Please verify your email before logging in',
@@ -220,7 +287,6 @@ def login():
                 status_messages = {
                     'pending': 'Account is pending approval',
                     'rejected': 'Account application was rejected'
-                    # Remove 'suspended' since your model doesn't have it
                 }
                 status_messages_ar = {
                     'pending': 'الحساب في انتظار الموافقة',
@@ -273,7 +339,7 @@ def login():
 
 @auth_bp.route('/verify-email', methods=['POST'])
 def verify_email():
-    """Verify email address"""
+    """Verify email address - FIXED to properly update boolean fields"""
     try:
         data = request.get_json()
         token = data.get('token')
@@ -295,11 +361,15 @@ def verify_email():
                     'message_ar': 'انتهت صلاحية رمز التحقق'
                 }), 400
             
+            # ✅ PROPERLY UPDATE ALL EMAIL VERIFICATION FIELDS
             user.is_email_verified = True
+            user.email_verified = True  # Update both boolean fields
             user.email_verification_token = None
             user.email_verification_expires = None
             user.email_verified_at = datetime.utcnow()
             db.session.commit()
+            
+            current_app.logger.info(f"User email verified: {user.email}")
             
             return jsonify({
                 'success': True,
@@ -317,11 +387,15 @@ def verify_email():
                     'message_ar': 'انتهت صلاحية رمز التحقق'
                 }), 400
             
+            # ✅ PROPERLY UPDATE ALL EMAIL VERIFICATION FIELDS
             pharmacy.is_email_verified = True
+            pharmacy.email_verified = True  # Update both boolean fields
             pharmacy.email_verification_token = None
             pharmacy.email_verification_expires = None
             pharmacy.email_verified_at = datetime.utcnow()
             db.session.commit()
+            
+            current_app.logger.info(f"Pharmacy email verified: {pharmacy.email}")
             
             return jsonify({
                 'success': True,
@@ -404,8 +478,8 @@ def forgot_password():
         current_app.logger.error(f"Forgot password error: {str(e)}")
         return jsonify({
             'success': False,
-            'message': 'Failed to process password reset request',
-            'message_ar': 'فشل في معالجة طلب إعادة تعيين كلمة المرور'
+            'message': 'Password reset failed',
+            'message_ar': 'فشل في إعادة تعيين كلمة المرور'
         }), 500
 
 @auth_bp.route('/reset-password', methods=['POST'])
@@ -443,7 +517,6 @@ def reset_password():
             user.password_hash = generate_password_hash(new_password)
             user.password_reset_token = None
             user.password_reset_expires = None
-            user.password_changed_at = datetime.utcnow()
             db.session.commit()
             
             return jsonify({
@@ -465,7 +538,6 @@ def reset_password():
             pharmacy.password_hash = generate_password_hash(new_password)
             pharmacy.password_reset_token = None
             pharmacy.password_reset_expires = None
-            pharmacy.password_changed_at = datetime.utcnow()
             db.session.commit()
             
             return jsonify({
@@ -493,17 +565,16 @@ def reset_password():
 def refresh():
     """Refresh access token"""
     try:
-        current_identity = get_jwt_identity()
+        current_user = get_jwt_identity()
         
-        # Create new access token
-        access_token = create_access_token(
-            identity=current_identity,
+        new_token = create_access_token(
+            identity=current_user,
             expires_delta=timedelta(hours=24)
         )
         
         return jsonify({
             'success': True,
-            'access_token': access_token
+            'access_token': new_token
         }), 200
         
     except Exception as e:
@@ -511,17 +582,37 @@ def refresh():
         return jsonify({
             'success': False,
             'message': 'Token refresh failed',
-            'message_ar': 'فشل في تحديث الرمز المميز'
+            'message_ar': 'فشل في تحديث الرمز'
         }), 500
 
-@auth_bp.route('/me', methods=['GET'])
+@auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
-def get_current_user():
-    """Get current user information"""
+def logout():
+    """Logout user"""
     try:
-        current_identity = get_jwt_identity()
-        user_id = current_identity['id']
-        user_type = current_identity['type']
+        # In a production app, you might want to blacklist the token
+        return jsonify({
+            'success': True,
+            'message': 'Logged out successfully',
+            'message_ar': 'تم تسجيل الخروج بنجاح'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Logout error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Logout failed',
+            'message_ar': 'فشل في تسجيل الخروج'
+        }), 500
+
+@auth_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    """Get current user profile"""
+    try:
+        current_user = get_jwt_identity()
+        user_id = current_user['id']
+        user_type = current_user['type']
         
         if user_type == 'user':
             user = User.query.get(user_id)
@@ -560,78 +651,10 @@ def get_current_user():
         }), 400
         
     except Exception as e:
-        current_app.logger.error(f"Get current user error: {str(e)}")
+        current_app.logger.error(f"Get profile error: {str(e)}")
         return jsonify({
             'success': False,
-            'message': 'Failed to get user information',
-            'message_ar': 'فشل في الحصول على معلومات المستخدم'
-        }), 500
-
-@auth_bp.route('/change-password', methods=['POST'])
-@jwt_required()
-def change_password():
-    """Change password for authenticated user"""
-    try:
-        current_identity = get_jwt_identity()
-        user_id = current_identity['id']
-        user_type = current_identity['type']
-        
-        data = request.get_json()
-        current_password = data.get('current_password')
-        new_password = data.get('new_password')
-        
-        if not current_password or not new_password:
-            return jsonify({
-                'success': False,
-                'message': 'Current password and new password are required',
-                'message_ar': 'كلمة المرور الحالية والجديدة مطلوبتان'
-            }), 400
-        
-        if len(new_password) < 8:
-            return jsonify({
-                'success': False,
-                'message': 'New password must be at least 8 characters long',
-                'message_ar': 'يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل'
-            }), 400
-        
-        if user_type == 'user':
-            user = User.query.get(user_id)
-            if not user or not check_password_hash(user.password_hash, current_password):
-                return jsonify({
-                    'success': False,
-                    'message': 'Current password is incorrect',
-                    'message_ar': 'كلمة المرور الحالية غير صحيحة'
-                }), 400
-            
-            user.password_hash = generate_password_hash(new_password)
-            user.password_changed_at = datetime.utcnow()
-            
-        elif user_type == 'pharmacy':
-            pharmacy = Pharmacy.query.get(user_id)
-            if not pharmacy or not check_password_hash(pharmacy.password_hash, current_password):
-                return jsonify({
-                    'success': False,
-                    'message': 'Current password is incorrect',
-                    'message_ar': 'كلمة المرور الحالية غير صحيحة'
-                }), 400
-            
-            pharmacy.password_hash = generate_password_hash(new_password)
-            pharmacy.password_changed_at = datetime.utcnow()
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Password changed successfully',
-            'message_ar': 'تم تغيير كلمة المرور بنجاح'
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Change password error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'Failed to change password',
-            'message_ar': 'فشل في تغيير كلمة المرور'
+            'message': 'Failed to get profile',
+            'message_ar': 'فشل في الحصول على الملف الشخصي'
         }), 500
 
