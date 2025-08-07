@@ -98,7 +98,8 @@ class Pharmacy(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     email_verified = db.Column(db.Boolean, default=False)
     phone_verified = db.Column(db.Boolean, default=False)
-    
+    preferred_language = db.Column(db.Enum('ar', 'en', name='language_types'), default='ar')
+
     # Subscription
     subscription_plan = db.Column(db.Enum('basic', 'premium', 'enterprise', name='subscription_plans'), default='basic')
     subscription_expires_at = db.Column(db.DateTime)
@@ -271,6 +272,7 @@ class Pharmacy(db.Model):
             'phone': self.phone,
             'whatsapp_number': self.whatsapp_number,
             'website_url': self.website_url,
+            'preferred_language': self.preferred_language,
             'address': {
                 'line1': self.address_line1,
                 'line2': self.address_line2,
