@@ -658,3 +658,179 @@ def get_profile():
             'message_ar': 'فشل في الحصول على الملف الشخصي'
         }), 500
 
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Resend email verification"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+        
+        if not email:
+            return jsonify({
+                'success': False,
+                'message': 'Email is required',
+                'message_ar': 'البريد الإلكتروني مطلوب'
+            }), 400
+        
+        # Validate email format
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            return jsonify({
+                'success': False,
+                'message': 'Invalid email format',
+                'message_ar': 'تنسيق البريد الإلكتروني غير صحيح'
+            }), 400
+        
+        # Check for user first
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Check if already verified
+            if user.is_email_verified or user.email_verified:
+                return jsonify({
+                    'success': False,
+                    'message': 'Email is already verified',
+                    'message_ar': 'البريد الإلكتروني مفعل بالفعل'
+                }), 400
+            
+            # Check rate limiting (optional - prevent spam)
+            if (user.email_verification_expires and 
+                user.email_verification_expires > datetime.utcnow() and
+                (datetime.utcnow() - (user.email_verification_expires - timedelta(hours=24))).total_seconds() < 300):  # 5 minutes
+                return jsonify({
+                    'success': False,
+                    'message': 'Please wait 5 minutes before requesting another verification email',
+                    'message_ar': 'يرجى الانتظار 5 دقائق قبل طلب بريد تفعيل آخر'
+                }), 429
+            
+            # Generate new verification token
+            user.email_verification_token = secrets.token_urlsafe(32)
+            user.email_verification_expires = datetime.utcnow() + timedelta(hours=24)
+            db.session.commit()
+            
+            # Send verification email
+            try:
+                EmailService.send_verification_email(user.email, user.email_verification_token, user.preferred_language)
+                current_app.logger.info(f"Verification email resent to user: {user.email}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Verification email sent successfully',
+                    'message_ar': 'تم إرسال بريد التفعيل بنجاح'
+                }), 200
+                
+            except Exception as e:
+                current_app.logger.error(f"Failed to resend verification email to user {user.email}: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to send verification email',
+                    'message_ar': 'فشل في إرسال بريد التفعيل'
+                }), 500
+        
+        # Check for pharmacy
+        pharmacy = Pharmacy.query.filter_by(email=email).first()
+        if pharmacy:
+            # Check if already verified
+            if pharmacy.is_email_verified or pharmacy.email_verified:
+                return jsonify({
+                    'success': False,
+                    'message': 'Email is already verified',
+                    'message_ar': 'البريد الإلكتروني مفعل بالفعل'
+                }), 400
+            
+            # Check rate limiting (optional - prevent spam)
+            if (pharmacy.email_verification_expires and 
+                pharmacy.email_verification_expires > datetime.utcnow() and
+                (datetime.utcnow() - (pharmacy.email_verification_expires - timedelta(hours=24))).total_seconds() < 300):  # 5 minutes
+                return jsonify({
+                    'success': False,
+                    'message': 'Please wait 5 minutes before requesting another verification email',
+                    'message_ar': 'يرجى الانتظار 5 دقائق قبل طلب بريد تفعيل آخر'
+                }), 429
+            
+            # Generate new verification token
+            pharmacy.email_verification_token = secrets.token_urlsafe(32)
+            pharmacy.email_verification_expires = datetime.utcnow() + timedelta(hours=24)
+            db.session.commit()
+            
+            # Send verification email
+            try:
+                EmailService.send_pharmacy_verification_email(pharmacy.email, pharmacy.email_verification_token, pharmacy.preferred_language)
+                current_app.logger.info(f"Verification email resent to pharmacy: {pharmacy.email}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Verification email sent successfully',
+                    'message_ar': 'تم إرسال بريد التفعيل بنجاح'
+                }), 200
+                
+            except Exception as e:
+                current_app.logger.error(f"Failed to resend verification email to pharmacy {pharmacy.email}: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to send verification email',
+                    'message_ar': 'فشل في إرسال بريد التفعيل'
+                }), 500
+        
+        # Email not found - return generic message to prevent email enumeration
+        return jsonify({
+            'success': True,
+            'message': 'If the email exists and is not verified, a verification email has been sent',
+            'message_ar': 'إذا كان البريد الإلكتروني موجود وغير مفعل، فقد تم إرسال بريد التفعيل'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Resend verification error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to resend verification email',
+            'message_ar': 'فشل في إعادة إرسال بريد التفعيل'
+        }), 500
+
+@auth_bp.route('/check-verification-status', methods=['POST'])
+def check_verification_status():
+    """Check if email is verified (useful for frontend)"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+        
+        if not email:
+            return jsonify({
+                'success': False,
+                'message': 'Email is required',
+                'message_ar': 'البريد الإلكتروني مطلوب'
+            }), 400
+        
+        # Check user
+        user = User.query.filter_by(email=email).first()
+        if user:
+            return jsonify({
+                'success': True,
+                'is_verified': user.is_email_verified or user.email_verified,
+                'user_type': 'patient',
+                'verification_status': 'verified' if (user.is_email_verified or user.email_verified) else 'pending'
+            }), 200
+        
+        # Check pharmacy
+        pharmacy = Pharmacy.query.filter_by(email=email).first()
+        if pharmacy:
+            return jsonify({
+                'success': True,
+                'is_verified': pharmacy.is_email_verified or pharmacy.email_verified,
+                'user_type': 'pharmacy',
+                'verification_status': pharmacy.verification_status if (pharmacy.is_email_verified or pharmacy.email_verified) else 'email_pending'
+            }), 200
+        
+        # Email not found
+        return jsonify({
+            'success': False,
+            'message': 'Email not found',
+            'message_ar': 'البريد الإلكتروني غير موجود'
+        }), 404
+        
+    except Exception as e:
+        current_app.logger.error(f"Check verification status error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to check verification status',
+            'message_ar': 'فشل في التحقق من حالة التفعيل'
+        }), 500
+
