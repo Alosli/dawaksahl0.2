@@ -96,7 +96,7 @@ def register():
                 # Emergency Contact
                 emergency_contact_name=data.get('emergency_contact_name', ''),
                 emergency_contact_phone=data.get('emergency_contact_phone', ''),
-                emergency_contact_relationship=data.get('emergency_contact_relationship', ''),
+                emergency_contact_relation=data.get('emergency_contact_relation', ''),
                 
                 # Insurance Information
                 insurance_provider=data.get('insurance_provider', ''),
@@ -108,7 +108,7 @@ def register():
                 # Email verification
                 email_verification_token=secrets.token_urlsafe(32),
                 email_verification_expires=datetime.utcnow() + timedelta(hours=24),
-                is_email_verified=False,
+                is_verified=False,
                 email_verified=False
             )
             
@@ -174,7 +174,7 @@ def register():
                 # Email verification
                 email_verification_token=secrets.token_urlsafe(32),
                 email_verification_expires=datetime.utcnow() + timedelta(hours=24),
-                is_email_verified=False,
+                is_verified=False,
                 email_verified=False,
                 
                 # Pharmacy approval status
@@ -235,7 +235,7 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password_hash, password):
             # Check email verification using the correct field names
-            if not user.is_email_verified and not user.email_verified:
+            if not user.is_verified and not user.email_verified:
                 return jsonify({
                     'success': False,
                     'message': 'Please verify your email before logging in',
@@ -276,7 +276,7 @@ def login():
         pharmacy = Pharmacy.query.filter_by(email=email).first()
         if pharmacy and check_password_hash(pharmacy.password_hash, password):
             # Check email verification using the correct field names
-            if not pharmacy.is_email_verified and not pharmacy.email_verified:
+            if not pharmacy.is_verified and not pharmacy.email_verified:
                 return jsonify({
                     'success': False,
                     'message': 'Please verify your email before logging in',
@@ -362,7 +362,7 @@ def verify_email():
                 }), 400
             
             # ✅ PROPERLY UPDATE ALL EMAIL VERIFICATION FIELDS
-            user.is_email_verified = True
+            user.is_verified = True
             user.email_verified = True  # Update both boolean fields
             user.email_verification_token = None
             user.email_verification_expires = None
@@ -388,7 +388,7 @@ def verify_email():
                 }), 400
             
             # ✅ PROPERLY UPDATE ALL EMAIL VERIFICATION FIELDS
-            pharmacy.is_email_verified = True
+            pharmacy.is_verified = True
             pharmacy.email_verified = True  # Update both boolean fields
             pharmacy.email_verification_token = None
             pharmacy.email_verification_expires = None
@@ -684,7 +684,7 @@ def resend_verification():
         user = User.query.filter_by(email=email).first()
         if user:
             # Check if already verified
-            if user.is_email_verified or user.email_verified:
+            if user.is_verified or user.email_verified:
                 return jsonify({
                     'success': False,
                     'message': 'Email is already verified',
@@ -729,7 +729,7 @@ def resend_verification():
         pharmacy = Pharmacy.query.filter_by(email=email).first()
         if pharmacy:
             # Check if already verified
-            if pharmacy.is_email_verified or pharmacy.email_verified:
+            if pharmacy.is_verified or pharmacy.email_verified:
                 return jsonify({
                     'success': False,
                     'message': 'Email is already verified',
@@ -804,9 +804,9 @@ def check_verification_status():
         if user:
             return jsonify({
                 'success': True,
-                'is_verified': user.is_email_verified or user.email_verified,
+                'is_verified': user.is_verified or user.email_verified,
                 'user_type': 'patient',
-                'verification_status': 'verified' if (user.is_email_verified or user.email_verified) else 'pending'
+                'verification_status': 'verified' if (user.is_verified or user.email_verified) else 'pending'
             }), 200
         
         # Check pharmacy
@@ -814,9 +814,9 @@ def check_verification_status():
         if pharmacy:
             return jsonify({
                 'success': True,
-                'is_verified': pharmacy.is_email_verified or pharmacy.email_verified,
+                'is_verified': pharmacy.is_verified or pharmacy.email_verified,
                 'user_type': 'pharmacy',
-                'verification_status': pharmacy.verification_status if (pharmacy.is_email_verified or pharmacy.email_verified) else 'email_pending'
+                'verification_status': pharmacy.verification_status if (pharmacy.is_verified or pharmacy.email_verified) else 'email_pending'
             }), 200
         
         # Email not found
