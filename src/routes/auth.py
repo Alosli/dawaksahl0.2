@@ -114,7 +114,7 @@ def register():
                 preferred_language=data.get('preferred_language', 'ar'),
                 email_verification_token=secrets.token_urlsafe(32),
                 email_verification_expires=datetime.utcnow() + timedelta(hours=24),
-                account_status='pending'  # Pharmacies need approval
+                verification_status='pending'  # Pharmacies need approval
             )
             
             db.session.add(pharmacy)
@@ -216,22 +216,21 @@ def login():
                     'message_ar': 'يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول'
                 }), 403
             
-            if pharmacy.account_status != 'active':
+            if pharmacy.verification_status != 'verified':
                 status_messages = {
                     'pending': 'Account is pending approval',
-                    'suspended': 'Account is suspended',
                     'rejected': 'Account application was rejected'
+                    # Remove 'suspended' since your model doesn't have it
                 }
                 status_messages_ar = {
                     'pending': 'الحساب في انتظار الموافقة',
-                    'suspended': 'الحساب معلق',
                     'rejected': 'تم رفض طلب الحساب'
                 }
                 
                 return jsonify({
                     'success': False,
-                    'message': status_messages.get(pharmacy.account_status, 'Account is not active'),
-                    'message_ar': status_messages_ar.get(pharmacy.account_status, 'الحساب غير نشط')
+                    'message': status_messages.get(pharmacy.verification_status, 'Account is not verified'),
+                    'message_ar': status_messages_ar.get(pharmacy.verification_status, 'الحساب غير مفعل')
                 }), 403
             
             # Update last login
