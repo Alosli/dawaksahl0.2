@@ -51,7 +51,7 @@ class EmailService:
         verification_url = f"{base_url}/verify-email?token={token}"
         
         if language == 'ar':
-            subject = "تفعيل حساب دواك صحل"
+            subject = "تفعيل حساب دواك سهل"
             html_content = f"""
             <!DOCTYPE html>
             <html dir="rtl" lang="ar">
@@ -71,12 +71,12 @@ class EmailService:
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>مرحباً بك في دواك صحل</h1>
+                        <h1>مرحباً بك في دواك سهل</h1>
                         <p>منصة الأدوية الرقمية في اليمن</p>
                     </div>
                     <div class="content">
                         <h2>تفعيل حسابك</h2>
-                        <p>شكراً لك على التسجيل في دواك صحل. لإكمال عملية التسجيل، يرجى النقر على الرابط أدناه لتفعيل حسابك:</p>
+                        <p>شكراً لك على التسجيل في دواك سهل. لإكمال عملية التسجيل، يرجى النقر على الرابط أدناه لتفعيل حسابك:</p>
                         <div style="text-align: center;">
                             <a href="{verification_url}" class="button">تفعيل الحساب</a>
                         </div>
@@ -85,7 +85,7 @@ class EmailService:
                         <p><strong>ملاحظة:</strong> هذا الرابط صالح لمدة 24 ساعة فقط.</p>
                     </div>
                     <div class="footer">
-                        <p>© 2025 دواك صحل. جميع الحقوق محفوظة.</p>
+                        <p>© 2025 دواك سهل. جميع الحقوق محفوظة.</p>
                         <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذا البريد الإلكتروني.</p>
                     </div>
                 </div>
@@ -144,7 +144,7 @@ class EmailService:
         verification_url = f"{base_url}/verify-email?token={token}"
         
         if language == 'ar':
-            subject = "تفعيل حساب الصيدلية - دواك صحل"
+            subject = "تفعيل حساب صيدليتك في منصة - دواك سهل"
             html_content = f"""
             <!DOCTYPE html>
             <html dir="rtl" lang="ar">
@@ -164,12 +164,12 @@ class EmailService:
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>مرحباً بصيدليتك في دواك صحل</h1>
+                        <h1>مرحباً بصيدليتك في دواك سهل</h1>
                         <p>منصة الأدوية الرقمية في اليمن</p>
                     </div>
                     <div class="content">
                         <h2>تفعيل حساب الصيدلية</h2>
-                        <p>شكراً لك على تسجيل صيدليتك في دواك صحل. لإكمال عملية التسجيل، يرجى النقر على الرابط أدناه لتفعيل حسابك:</p>
+                        <p>شكراً لك على تسجيل صيدليتك في دواك سهل. لإكمال عملية التسجيل، يرجى النقر على الرابط أدناه لتفعيل حسابك:</p>
                         <div style="text-align: center;">
                             <a href="{verification_url}" class="button">تفعيل حساب الصيدلية</a>
                         </div>
@@ -179,7 +179,7 @@ class EmailService:
                         <p><strong>ملاحظة:</strong> هذا الرابط صالح لمدة 24 ساعة فقط.</p>
                     </div>
                     <div class="footer">
-                        <p>© 2025 دواك صحل. جميع الحقوق محفوظة.</p>
+                        <p>© 2025 دواك سهل. جميع الحقوق محفوظة.</p>
                         <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذا البريد الإلكتروني.</p>
                     </div>
                 </div>
@@ -239,7 +239,7 @@ class EmailService:
         reset_url = f"{base_url}/reset-password?token={token}"
         
         if language == 'ar':
-            subject = "إعادة تعيين كلمة المرور - دواك صحل"
+            subject = "إعادة تعيين كلمة المرور - دواك سهل"
             html_content = f"""
             <!DOCTYPE html>
             <html dir="rtl" lang="ar">
@@ -260,7 +260,7 @@ class EmailService:
                 <div class="container">
                     <div class="header">
                         <h1>إعادة تعيين كلمة المرور</h1>
-                        <p>دواك صحل</p>
+                        <p>دواك سهل</p>
                     </div>
                     <div class="content">
                         <h2>طلب إعادة تعيين كلمة المرور</h2>
@@ -274,7 +274,7 @@ class EmailService:
                         <p>إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذا البريد الإلكتروني.</p>
                     </div>
                     <div class="footer">
-                        <p>© 2025 دواك صحل. جميع الحقوق محفوظة.</p>
+                        <p>© 2025 دواك سهل. جميع الحقوق محفوظة.</p>
                     </div>
                 </div>
             </body>

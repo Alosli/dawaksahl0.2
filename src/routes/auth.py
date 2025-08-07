@@ -122,7 +122,7 @@ def register():
             
             # Send verification email
             try:
-                EmailService.send_verification_email(pharmacy.email, pharmacy.email_verification_token, pharmacy.preferred_language)
+                EmailService.send_pharmacy_verification_email(pharmacy.email, pharmacy.email_verification_token, pharmacy.preferred_language)
             except Exception as e:
                 current_app.logger.error(f"Failed to send verification email: {str(e)}")
             
