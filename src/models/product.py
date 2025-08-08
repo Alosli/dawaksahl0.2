@@ -40,8 +40,8 @@ class Product(db.Model):
     dosage_form_ar = db.Column(db.String(100))
     strength = db.Column(db.String(100))
     strength_ar = db.Column(db.String(100))
-    route_of_administration = db.Column(db.String(100))
-    route_of_administration_ar = db.Column(db.String(100))
+    route = db.Column(db.String(100))
+    route_ar = db.Column(db.String(100))
     package_size = db.Column(db.String(100))
     package_size_ar = db.Column(db.String(100))
     
@@ -316,7 +316,7 @@ class Product(db.Model):
             'atc_code': self.atc_code,
             'dosage_form': self.get_localized_field('dosage_form', language),
             'strength': self.get_localized_field('strength', language),
-            'route_of_administration': self.get_localized_field('route_of_administration', language),
+            'route': self.get_localized_field('route', language),
             'package_size': self.get_localized_field('package_size', language),
             'pricing': {
                 'cost_price': self.cost_price,
