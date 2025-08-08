@@ -118,12 +118,12 @@ class Product(db.Model):
     is_available = db.Column(db.Boolean, default=True)
     
     # FDA Information
-    fda_application_number = Column(String(50), nullable=True)
-    fda_approved = Column(Boolean, default=False)
-    approval_date = Column(String(50), nullable=True)
-    marketing_status = Column(String(100), nullable=True)
-    therapeutic_class = Column(String(255), nullable=True)
-    active_ingredients = Column(JSON, nullable=True)  # Array of {name, strength}
+    fda_application_number = db.Column(String(50), nullable=True)
+    fda_approved = db.Column(Boolean, default=False)
+    approval_date = db.Column(String(50), nullable=True)
+    marketing_status = db.Column(String(100), nullable=True)
+    therapeutic_class = db.Column(String(255), nullable=True)
+    active_ingredients = db.Column(JSON, nullable=True)  # Array of {name, strength}
     
     # Quality and Ratings
     rating = db.Column(db.Float, default=0.0)
