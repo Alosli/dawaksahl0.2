@@ -116,7 +116,15 @@ class Product(db.Model):
     is_otc = db.Column(db.Boolean, default=True)  # Over-the-counter
     is_generic = db.Column(db.Boolean, default=False)
     is_available = db.Column(db.Boolean, default=True)
-        
+    
+    # FDA Information
+    fda_application_number = db.Column(db.String(50), nullable=True)
+    fda_approved = db.Column(db.Boolean, default=False)
+    approval_date = db.Column(db.String(50), nullable=True)
+    marketing_status = db.Column(db.String(100), nullable=True)
+    therapeutic_class = db.Column(db.String(255), nullable=True)
+    active_ingredients = db.Column(JSON, nullable=True)  # Array of {name, strength}
+    
     # Quality and Ratings
     rating = db.Column(db.Float, default=0.0)
     total_reviews = db.Column(db.Integer, default=0)
