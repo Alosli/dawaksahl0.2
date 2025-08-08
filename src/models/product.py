@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from src.models import db
 import uuid
-import json
+from sqlalchemy import JSON
 
 class Product(db.Model):
     """Unified Product model - replaces both products and medications tables"""
