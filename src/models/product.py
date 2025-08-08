@@ -117,6 +117,14 @@ class Product(db.Model):
     is_generic = db.Column(db.Boolean, default=False)
     is_available = db.Column(db.Boolean, default=True)
     
+    # FDA Information
+    fda_application_number=data.get('fda_application_number'),
+    fda_approved=bool(data.get('fda_approved', False)),
+    approval_date=data.get('approval_date'),
+    marketing_status=data.get('marketing_status'),
+    therapeutic_class=data.get('therapeutic_class'),
+    active_ingredients=data.get('active_ingredients', []),
+    
     # Quality and Ratings
     rating = db.Column(db.Float, default=0.0)
     total_reviews = db.Column(db.Integer, default=0)
