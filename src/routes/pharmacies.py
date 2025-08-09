@@ -26,7 +26,7 @@ def get_pharmacies():
         radius = request.args.get('radius', 10, type=float)  # km
         
         # Build query
-        query = Pharmacy.query.filter_by(is_active=True')
+        query = Pharmacy.query.filter_by(is_active=True)
         
         # Apply filters
         if city:
