@@ -261,7 +261,7 @@ class Pharmacy(db.Model):
             self.rating = 0.0
             self.total_reviews = 0
     
-    def to_dict(self, language='ar' include_sensitive=False):
+    def to_dict(self, language='ar', include_sensitive=False):
         """Convert pharmacy to dictionary"""
         data = {
             'id': self.id,
