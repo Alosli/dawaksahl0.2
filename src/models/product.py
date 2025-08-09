@@ -46,6 +46,7 @@ class Product(db.Model):
     package_size_ar = db.Column(db.String(100))
     
     # Pricing
+    price = db.Column(db.Float, nullable=False, default=0.0)  # Original price
     cost_price = db.Column(db.Float)  # What pharmacy pays
     selling_price = db.Column(db.Float, nullable=False)  # What pharmacy charges
     discount_percentage = db.Column(db.Float, default=0.0)
@@ -219,18 +220,15 @@ class Product(db.Model):
         return self.get_json_field('additional_images')
     
     def calculate_final_price(self):
-        """Calculate final price after discount and tax"""
-        price = self.selling_price
-        
-        # Apply discount
-        if self.discount_percentage > 0:
-            price = price * (1 - self.discount_percentage / 100)
+        """Calculate final price after tax (discount already applied to selling_price)"""
+        price_after_tax = self.selling_price  # ✅ Very clear what this is
         
         # Apply tax
         if self.tax_percentage > 0:
-            price = price * (1 + self.tax_percentage / 100)
+            price_after_tax = price_after_tax * (1 + self.tax_percentage / 100)
         
-        return round(price, 2)
+        return round(price_after_tax, 2)
+
     
     def calculate_profit_margin(self):
         """Calculate profit margin percentage"""

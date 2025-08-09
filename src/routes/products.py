@@ -11,6 +11,13 @@ from src.services.auth_service import AuthService
 
 products_bp = Blueprint('products', __name__)
 
+def calculate_selling_price(price, discount_percentage):
+    """Calculate selling price based on price and discount"""
+    if discount_percentage and discount_percentage > 0:
+        discount_amount = price * (discount_percentage / 100)
+        return round(price - discount_amount, 2)
+    return price
+
 @products_bp.route('/products', methods=['GET'])
 def get_products():
     """Get products for patients (public endpoint)"""
@@ -321,8 +328,8 @@ def create_product():
         pharmacy_id = current_identity['id']
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['product_name', 'category_id', 'selling_price', 'current_stock']
+        # Validate required fields - CHANGED TO PRICE INSTEAD OF SELLING_PRICE
+        required_fields = ['product_name', 'category_id', 'price', 'current_stock']  # ✅ price not selling_price
         for field in required_fields:
             if not data.get(field):
                 return jsonify({
@@ -331,12 +338,23 @@ def create_product():
                     'message_ar': f'{field} مطلوب'
                 }), 400
         
-        # Create product
-        product = Product(
-            pharmacy_id=pharmacy_id,
-            created_by=pharmacy_id,
-            **data
-        )
+        # CALCULATE SELLING PRICE - NEW LOGIC
+        price = float(data.get('price', 0))
+        discount_percentage = float(data.get('discount_percentage', 0))
+        
+        # Calculate selling price
+        if discount_percentage > 0:
+            selling_price = price - (price * discount_percentage / 100)
+        else:
+            selling_price = price
+        
+        # Create product with calculated selling_price
+        product_data = data.copy()
+        product_data['selling_price'] = round(selling_price, 2)  # ✅ Add calculated selling_price
+        product_data['pharmacy_id'] = pharmacy_id
+        product_data['created_by'] = pharmacy_id
+        
+        product = Product(**product_data)
         
         db.session.add(product)
         db.session.commit()
@@ -382,11 +400,25 @@ def update_product(product_id):
         
         data = request.get_json()
         
-        # Update allowed fields
+        # RECALCULATE SELLING PRICE IF PRICE OR DISCOUNT CHANGED
+        if 'price' in data or 'discount_percentage' in data:
+            price = float(data.get('price', product.price))
+            discount_percentage = float(data.get('discount_percentage', product.discount_percentage or 0))
+            
+            # Calculate new selling price
+            if discount_percentage > 0:
+                selling_price = price - (price * discount_percentage / 100)
+            else:
+                selling_price = price
+            
+            data['selling_price'] = round(selling_price, 2)  # ✅ Update selling_price
+        
+        # Update allowed fields - ADD PRICE AND DISCOUNT_PERCENTAGE
         allowed_fields = [
             'product_name', 'product_name_ar', 'generic_name', 'generic_name_ar',
             'brand_name', 'brand_name_ar', 'description', 'description_ar',
-            'manufacturer', 'manufacturer_ar', 'category_id', 'selling_price',
+            'manufacturer', 'manufacturer_ar', 'category_id', 
+            'price', 'discount_percentage', 'selling_price',  # ✅ Added price and discount_percentage
             'current_stock', 'minimum_stock', 'maximum_stock', 'reorder_level',
             'dosage_form', 'dosage_form_ar', 'strength', 'strength_ar',
             'requires_prescription', 'is_otc', 'is_generic', 'is_available',
@@ -416,6 +448,7 @@ def update_product(product_id):
             'message': 'Failed to update product',
             'message_ar': 'فشل في تحديث المنتج'
         }), 500
+
 
 @products_bp.route('/pharmacy/products/<int:product_id>', methods=['DELETE'])
 @jwt_required()
