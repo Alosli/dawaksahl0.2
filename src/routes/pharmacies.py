@@ -26,7 +26,7 @@ def get_pharmacies():
         radius = request.args.get('radius', 10, type=float)  # km
         
         # Build query
-        query = Pharmacy.query.filter_by(is_active=True)
+        query = Pharmacy.query.filter_by(account_status='active')
         
         # Apply filters
         if city:
@@ -482,7 +482,7 @@ def get_nearby_pharmacies():
         lng_range = radius / (111.0 * abs(latitude))
         
         pharmacies = Pharmacy.query.filter(
-            Pharmacy.is_active=True
+            Pharmacy.account_status == 'active',
             Pharmacy.latitude.between(latitude - lat_range, latitude + lat_range),
             Pharmacy.longitude.between(longitude - lng_range, longitude + lng_range)
         ).limit(limit).all()
@@ -539,7 +539,7 @@ def search_pharmacies():
         # Build search query
         search_term = f'%{query_text}%'
         query = Pharmacy.query.filter(
-            Pharmacy.is_active=True
+            Pharmacy.account_status == 'active'
         ).filter(
             db.or_(
                 Pharmacy.pharmacy_name.ilike(search_term),
