@@ -539,7 +539,7 @@ def search_pharmacies():
         # Build search query
         search_term = f'%{query_text}%'
         query = Pharmacy.query.filter(
-            Pharmacy.is_active=True
+            Pharmacy.is_active == True
         ).filter(
             db.or_(
                 Pharmacy.pharmacy_name.ilike(search_term),
