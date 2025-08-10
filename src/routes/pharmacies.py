@@ -63,8 +63,8 @@ def get_pharmacies():
                 Pharmacy.longitude.between(longitude - lng_range, longitude + lng_range)
             )
         
-        # Order by rating and distance
-        query = query.order_by(Pharmacy.average_rating.desc(), Pharmacy.created_at.desc())
+        # ✅ FIXED: Order by rating (not average_rating) and distance
+        query = query.order_by(Pharmacy.rating.desc(), Pharmacy.created_at.desc())
         
         # Paginate
         pagination = query.paginate(
@@ -552,7 +552,8 @@ def search_pharmacies():
                 Pharmacy.services_offered.ilike(search_term),
                 Pharmacy.services_offered_ar.ilike(search_term)
             )
-        ).order_by(Pharmacy.average_rating.desc())
+        # ✅ FIXED: Order by rating (not average_rating)
+        ).order_by(Pharmacy.rating.desc())
         
         # Paginate
         pagination = query.paginate(
