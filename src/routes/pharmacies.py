@@ -404,12 +404,12 @@ def get_pharmacy_stats():
         # Get product stats
         from src.models.product import Product
         total_products = Product.query.filter_by(pharmacy_id=pharmacy_id, is_active=True).count()
-        out_of_stock = Product.query.filter_by(pharmacy_id=pharmacy_id, is_active=True, stock_quantity=0).count()
+        out_of_stock = Product.query.filter_by(pharmacy_id=pharmacy_id, is_active=True, current_stock=0).count()
         low_stock = Product.query.filter(
             Product.pharmacy_id == pharmacy_id,
             Product.is_active == True,
-            Product.stock_quantity > 0,
-            Product.stock_quantity <= Product.low_stock_threshold
+            Product.current_stock > 0,
+            Product.current_stock <= Product.low_stock_threshold
         ).count()
         
         # Get order stats
