@@ -145,7 +145,7 @@ def register():
                 
                 # Contact Information
                 phone=data.get('phone', ''),
-                website=data.get('website', ''),
+                website_url=data.get('website_url', ''),
                 
                 # Address Information (mapped correctly)
                 address_line1=data.get('address_line1', ''),
