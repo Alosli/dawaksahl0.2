@@ -64,6 +64,8 @@ def create_app(config_class=Config):
     from src.routes.favorites import favorites_bp
     from src.routes.users import users_bp
     from src.routes.pharmacies import pharmacies_bp
+    from src.routes.cart import cart_bp
+
     
     # API v1 routes
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
@@ -75,6 +77,8 @@ def create_app(config_class=Config):
     app.register_blueprint(favorites_bp, url_prefix='/api/v1/favorites')
     app.register_blueprint(users_bp, url_prefix='/api/v1/users')
     app.register_blueprint(pharmacies_bp, url_prefix='/api/v1/pharmacies')
+    app.register_blueprint(cart_bp, url_prefix='/api/v1/cart')
+
     
     # Health check endpoint
     @app.route('/health')
