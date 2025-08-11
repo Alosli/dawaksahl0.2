@@ -4,6 +4,7 @@ from src.models import db
 from src.models.cart import Cart
 from src.models.product import Product
 from src.models.user import User
+from datetime import datetime
 
 cart_bp = Blueprint('cart', __name__)
 
