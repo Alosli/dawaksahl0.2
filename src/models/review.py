@@ -8,6 +8,8 @@ class Review(db.Model):
     
     # Primary Key
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+
     
     # Foreign Keys
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
