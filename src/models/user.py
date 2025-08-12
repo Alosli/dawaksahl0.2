@@ -145,7 +145,7 @@ class User(db.Model):
         """Get notification preferences"""
         return self.get_json_field('notification_preferences')
     
-    def to_dict(self,language='ar', include_sensitive=False):
+    def to_dict(self,language='ar', include_sensitive=True):
         """Convert user to dictionary"""
         data = {
             'id': self.id,
