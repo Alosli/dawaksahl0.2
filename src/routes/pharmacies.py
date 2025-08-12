@@ -409,7 +409,7 @@ def get_pharmacy_stats():
             Product.pharmacy_id == pharmacy_id,
             Product.is_active == True,
             Product.current_stock > 0,
-            Product.current_stock <= Product.low_stock_threshold
+            Product.current_stock <= Product.minimum_stock
         ).count()
         
         # Get order stats
