@@ -46,9 +46,9 @@ class Product(db.Model):
     package_size_ar = db.Column(db.String(100))
     
     # Pricing
-    price = db.Column(db.Float, nullable=False, default=0.0)  # Original price
+    price = db.Column(db.Float, nullable=False, default=0.0)  # Original selling price
     cost_price = db.Column(db.Float)  # What pharmacy pays
-    selling_price = db.Column(db.Float, nullable=False)  # What pharmacy charges
+    selling_price = db.Column(db.Float, nullable=False)  # price after discount!
     discount_percentage = db.Column(db.Float, default=0.0)
     tax_percentage = db.Column(db.Float, default=0.0)
     currency = db.Column(db.String(3), default='YER')
@@ -318,6 +318,7 @@ class Product(db.Model):
             'route': self.get_localized_field('route', language),
             'package_size': self.get_localized_field('package_size', language),
             'pricing': {
+                'price': self.price,
                 'cost_price': self.cost_price,
                 'selling_price': self.selling_price,
                 'final_price': self.calculate_final_price(),
