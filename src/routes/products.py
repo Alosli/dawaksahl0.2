@@ -29,7 +29,7 @@ def get_products():
         category_id = request.args.get('category_id', type=int)
         pharmacy_id = request.args.get('pharmacy_id')
         sort_by = request.args.get('sort_by', 'relevance')
-        language = request.args.get('language', 'ar')
+        language = request.headers.get('Accept-Language', 'ar')
         
         # Filters
         in_stock = request.args.get('in_stock', type=bool)
@@ -144,7 +144,7 @@ def get_products():
 def get_product(product_id):
     """Get single product details"""
     try:
-        language = request.args.get('language', 'ar')
+        language = request.headers.get('Accept-Language', 'ar')
         
         product = Product.query.filter_by(id=product_id, is_active=True).first()
         if not product:
@@ -171,7 +171,7 @@ def get_product(product_id):
 def get_categories():
     """Get product categories"""
     try:
-        language = request.args.get('language', 'ar')
+        language = request.headers.get('Accept-Language', 'ar')
         
         categories = Category.query.filter_by(is_active=True).order_by(Category.sort_order, Category.name).all()
         
@@ -209,7 +209,7 @@ def get_pharmacy_products():
         search = request.args.get('search', '').strip()
         category_id = request.args.get('category_id', type=int)
         sort_by = request.args.get('sort_by', 'name')
-        language = request.args.get('language', 'ar')
+        language = request.headers.get('Accept-Language', 'ar')
         
         # Filters
         in_stock = request.args.get('in_stock', type=bool)
@@ -652,7 +652,7 @@ def search_products():
     """Advanced product search"""
     try:
         query_text = request.args.get('q', '').strip()
-        language = request.args.get('language', 'ar')
+        language = request.headers.get('Accept-Language', 'ar')
         limit = min(request.args.get('limit', 10, type=int), 50)
         
         if not query_text:
