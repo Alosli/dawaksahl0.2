@@ -473,12 +473,12 @@ class TimeSlot(db.Model):
     appointments = db.relationship(
         'Appointment', 
         foreign_keys='Appointment.time_slot_id',
-        backref='time_slot', 
+        back_populates='time_slot', 
         lazy='dynamic'
     )
 
     # Child recurring slots
-    child_slots = db.relationship("TimeSlot", backref="parent_slot", remote_side=[id])
+    child_slots = db.relationship("TimeSlot", back_populates="parent_slot", remote_side=[id])
     
     # ================================
     # INDEXES FOR PERFORMANCE
