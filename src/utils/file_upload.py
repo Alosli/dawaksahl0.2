@@ -8,7 +8,6 @@ import uuid
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from PIL import Image
-import magic
 from flask import current_app
 
 # Allowed file extensions
