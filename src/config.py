@@ -17,6 +17,15 @@ class Config:
         'pool_pre_ping': True,
         'pool_recycle': 300,
     }
+    # File Upload Configuration
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    
+    # Doctor System Configuration
+    DOCTOR_VERIFICATION_REQUIRED = True
+    APPOINTMENT_BOOKING_ADVANCE_DAYS = 30
+    PRESCRIPTION_EXPIRY_DAYS = 90
+
     
     # JWT configuration
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-string-change-in-production'

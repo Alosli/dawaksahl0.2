@@ -15,6 +15,9 @@ from .chat import Conversation, Message, ChatParticipant
 from .review import Review
 from .notification import Notification
 from .favorite import UserFavorite
+from .doctor import Doctor, DoctorReview, TimeSlot
+from .prescription import Prescription, PrescriptionMedication
+from .appointment import Appointment, AppointmentReminder, AppointmentHistory, AppointmentWaitingList
 
 # Export all models for easy importing
 __all__ = [
@@ -31,6 +34,16 @@ __all__ = [
     'ChatParticipant',
     'Review',
     'Notification',
-    'UserFavorite'
+    'UserFavorite',
+    'Doctor',
+    'DoctorReview', 
+    'Prescription',
+    'PrescriptionMedication',
+    'Appointment',
+    'TimeSlot',
+    'AppointmentReminder',
+    'AppointmentHistory',
+    'AppointmentWaitingList'
+    
 ]
 
