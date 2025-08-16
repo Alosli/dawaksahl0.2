@@ -193,8 +193,8 @@ class Appointment(db.Model):
     # ================================
     # METADATA
     # ================================
-    created_at = db.Column(db.DateTime, default=db.DateTime.utcnow)
-    updated_at = db.Column(db.DateTime, default=db.DateTime.utcnow, onupdate=db.DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetim.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetim.utcnow, onupdate=datetim.utcnow)
     completed_at = db.Column(db.DateTime)
     
     # Booking Information
@@ -262,7 +262,7 @@ class Appointment(db.Model):
     def get_appointment_DateTime(self):
         """Get appointment Date and time from time slot"""
         if self.time_slot:
-            return DateTime.combine(self.time_slot.Date, self.time_slot.start_time)
+            return datetime.combine(self.time_slot.Date, self.time_slot.start_time)
         return None
 
     def get_appointment_duration(self):
@@ -276,12 +276,12 @@ class Appointment(db.Model):
         if self.status in ['completed', 'cancelled', 'no_show']:
             return False, "Appointment cannot be cancelled"
         
-        appointment_db.DateTime = self.get_appointment_db.DateTime()
-        if not appointment_db.DateTime:
+        appointment_datetime = self.get_appointment_datetime()
+        if not appointment_datetime:
             return False, "Invalid appointment time"
         
         # Check cancellation deadline
-        hours_until_appointment = (appointment_db.DateTime - db.DateTime.now()).total_seconds() / 3600
+        hours_until_appointment = (appointment_datetime - datetime.now()).total_seconds() / 3600
         cancellation_deadline = self.time_slot.cancellation_deadline_hours if self.time_slot else 24
         
         if hours_until_appointment < cancellation_deadline:
@@ -320,7 +320,7 @@ class Appointment(db.Model):
         """Generate unique appointment number"""
         if not self.appointment_number:
             # Generate based on Date and sequence
-            today = DateTime.now().strftime('%Y%m%d')
+            today = datetime.now().strftime('%Y%m%d')
             # This would typically query the database for the next sequence number
             # For now, use a simple approach
             import random
@@ -331,22 +331,22 @@ class Appointment(db.Model):
         """Send appointment confirmation"""
         # This would integrate with your notification service
         self.confirmation_sent = True
-        self.confirmation_sent_at = DateTime.utcnow()
+        self.confirmation_sent_at = datetime.utcnow()
 
     def check_in_patient(self):
         """Check in patient for appointment"""
-        self.check_in_time = DateTime.utcnow()
+        self.check_in_time = datetime.utcnow()
         self.status = 'confirmed'
 
     def start_appointment(self):
         """Start the appointment"""
-        self.appointment_start_time = DateTime.utcnow()
+        self.appointment_start_time = datetime.utcnow()
         self.status = 'in_progress'
 
     def complete_appointment(self):
         """Complete the appointment"""
-        self.appointment_end_time = DateTime.utcnow()
-        self.completed_at = DateTime.utcnow()
+        self.appointment_end_time = datetime.utcnow()
+        self.completed_at = datetime.utcnow()
         self.status = 'completed'
         self.appointment_completed_successfully = True
         
@@ -358,7 +358,7 @@ class Appointment(db.Model):
     def cancel_appointment(self, cancelled_by, reason=None):
         """Cancel the appointment"""
         self.status = 'cancelled'
-        self.cancelled_at = DateTime.utcnow()
+        self.cancelled_at = datetime.utcnow()
         self.cancelled_by = cancelled_by
         self.cancellation_reason = reason
         
@@ -374,7 +374,7 @@ class Appointment(db.Model):
         # Update to new time slot
         self.time_slot_id = new_time_slot_id
         self.rescheduled_count += 1
-        self.rescheduled_at = DateTime.utcnow()
+        self.rescheduled_at = datetime.utcnow()
         self.rescheduled_by = rescheduled_by
         
         # Update status
@@ -395,7 +395,7 @@ class Appointment(db.Model):
             'consultation_mode': self.consultation_mode,
             'status': self.status,
             'booking_status': self.booking_status,
-            'appointment_DateTime': appointment_DateTime.isoformat() if appointment_db.DateTime else None,
+            'appointment_DateTime': appointment_datetime.isoformat() if appointment_datetime else None,
             'duration': self.get_appointment_duration(),
             'chief_complaint': self.chief_complaint,
             'symptoms': self.symptoms,
