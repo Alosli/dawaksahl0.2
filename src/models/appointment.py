@@ -444,7 +444,7 @@ class AppointmentHistory(db.Model):
     change_reason = db.Column(db.Text)
     
     # Metadata
-    created_at = db.Column(db.DateTime, default=DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     appointment = db.relationship("Appointment", back_populates="history")
@@ -481,7 +481,7 @@ class AppointmentReminder(db.Model):
     error_message = db.Column(db.Text)
     
     # Metadata
-    created_at = db.Column(db.DateTime, default=DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     appointment = db.relationship("Appointment", back_populates="reminders")
@@ -523,7 +523,7 @@ class AppointmentWaitingList(db.Model):
     notification_methods = db.Column(db.JSON)  # ["sms", "email", "push"]
     
     # Metadata
-    created_at = db.Column(db.DateTime, default=DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime)
     notified_at = db.Column(db.DateTime)
     

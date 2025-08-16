@@ -159,8 +159,8 @@ class Doctor(db.Model):
     # ================================
     # METADATA
     # ================================
-    created_at = db.Column(db.DateTime, default=DateTime.utcnow)
-    updated_at = db.Column(db.DateTime, default=DateTime.utcnow, onupdate=db.DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=db.DateTime.utcnow)
     last_login = db.Column(db.DateTime)
     last_activity = db.Column(db.DateTime)
     
@@ -454,8 +454,8 @@ class TimeSlot(db.Model):
     # ================================
     # METADATA
     # ================================
-    created_at = db.Column(db.DateTime, default=DateTime.utcnow)
-    updated_at = db.Column(db.DateTime, default=DateTime.utcnow, onupdate=db.DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=db.DateTime.utcnow)
     created_by = db.Column(db.String(20), default='doctor')  # doctor, admin, system
     
     # Booking Information
