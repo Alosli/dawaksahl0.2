@@ -19,12 +19,21 @@ def get_current_user():
         if not current_user_id:
             return None
         
-        # Use filter_by for string UUIDs (more reliable)
+        # Debug print
+        print(f"JWT Identity: {current_user_id}")
+        
+        # Try both methods
         user = User.query.filter_by(id=str(current_user_id)).first()
+        if not user:
+            user = User.query.get(str(current_user_id))
+        
+        print(f"Found user: {user.email if user else 'None'}")
         return user
+        
     except Exception as e:
-        print(f"Error getting current user: {e}")
+        print(f"Error in get_current_user: {e}")
         return None
+
 
 
 def get_current_pharmacy():
