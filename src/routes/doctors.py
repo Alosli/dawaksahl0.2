@@ -8,7 +8,7 @@ from src.models import db
 
 
 # Import your models (adjust imports based on your project structure)
-from models.doctor import Doctor, DoctorReview, TimeSlot
+from src.models.doctor import Doctor, DoctorReview, TimeSlot
 from utils.file_upload import upload_file  # Assuming you have a file upload utility
 
 doctor_auth_bp = Blueprint('doctor_auth', __name__, url_prefix='/api/v1/doctors')
