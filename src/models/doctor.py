@@ -168,16 +168,16 @@ class Doctor(db.Model):
     # RELATIONSHIPS
     # ================================
     # TimeSlots (Doctor's availability)
-    time_slots = relationship("TimeSlot", back_populates="doctor", cascade="all, delete-orphan")
+    time_slots = db.relationship("TimeSlot", back_populates="doctor", cascade="all, delete-orphan")
     
     # Appointments (through TimeSlots)
-    appointments = relationship("Appointment", back_populates="doctor", cascade="all, delete-orphan")
+    .relatioappointments = dbnship("Appointment", back_populates="doctor", cascade="all, delete-orphan")
     
     # Prescriptions issued by this doctor
-    prescriptions = relationship("Prescription", back_populates="doctor", cascade="all, delete-orphan")
+    prescriptions = db.relationship("Prescription", back_populates="doctor", cascade="all, delete-orphan")
     
     # Reviews received by this doctor
-    reviews = relationship("DoctorReview", back_populates="doctor", cascade="all, delete-orphan")
+    reviews = db.relationship("DoctorReview", back_populates="doctor", cascade="all, delete-orphan")
     
     # ================================
     # INDEXES FOR PERFORMANCE
@@ -467,13 +467,18 @@ class TimeSlot(db.Model):
     # RELATIONSHIPS
     # ================================
     # Doctor who owns this time slot
-    doctor = relationship("Doctor", back_populates="time_slots")
+    doctor = db.relationship("Doctor", back_populates="time_slots")
     
     # Appointments booked for this time slot
-    appointments = relationship("Appointment", back_populates="time_slot", cascade="all, delete-orphan")
-    
+    appointments = db.relationship(
+        'Appointment', 
+        foreign_keys='Appointment.time_slot_id',
+        backref='time_slot', 
+        lazy='dynamic'
+    )
+
     # Child recurring slots
-    child_slots = relationship("TimeSlot", backref="parent_slot", remote_side=[id])
+    child_slots = db.relationship("TimeSlot", backref="parent_slot", remote_side=[id])
     
     # ================================
     # INDEXES FOR PERFORMANCE
@@ -648,9 +653,9 @@ class DoctorReview(db.Model):
     updated_at = db.Column(db.DateTime, default= datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    doctor = relationship("Doctor", back_populates="reviews")
-    # patient = relationship("User", back_populates="doctor_reviews")
-    # appointment = relationship("Appointment", back_populates="review")
+    doctor = db.relationship("Doctor", back_populates="reviews")
+    patient = db.relationship("User", back_populates="doctor_reviews")
+    appointment = db.relationship("Appointment", back_populates="review")
 
     def to_dict(self):
         """Convert review to dictionary"""

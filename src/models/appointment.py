@@ -209,7 +209,7 @@ class Appointment(db.Model):
     patient = db.relationship("User", foreign_keys=[patient_id])
     
     # Doctor for the appointment
-    doctor = db.relationship("Doctor", back_populates="appointments")
+    doctor = db.relationship("Doctor", foreign_keys=[doctor_id], back_populates="appointments")
     
     # Time slot this appointment is booked for (THE KEY RELATIONSHIP!)
     time_slot = db.relationship("TimeSlot", back_populates="appointments", foreign_keys=[time_slot_id])
@@ -218,13 +218,12 @@ class Appointment(db.Model):
     original_time_slot = db.relationship("TimeSlot", foreign_keys=[original_time_slot_id])
     
     # Prescription issued during appointment
-    prescription = db.relationship("Prescription", back_populates="appointment")
+    prescription = db.relationship("Prescription",foreign_keys="Prescription.appointment_id", back_populates="appointment")
     
     # Appointment history and changes
-    history = db.relationship("AppointmentHistory", back_populates="appointment", cascade="all, delete-orphan")
-    
+    history = db.relationship("AppointmentHistory", foreign_keys="AppointmentHistory.appointment_id", back_populates="appointment", cascade="all, delete-orphan")    
     # Reminders for this appointment
-    reminders = db.relationship("AppointmentReminder", back_populates="appointment", cascade="all, delete-orphan")
+    reminders = db.relationship("AppointmentReminder", foreign_keys="AppointmentReminder.appointment_id", back_populates="appointment", cascade="all, delete-orphan")
     
     # ================================
     # INDEXES FOR PERFORMANCE
@@ -530,7 +529,8 @@ class AppointmentWaitingList(db.Model):
     # Relationships
     patient = db.relationship("User", foreign_keys=[patient_id])
     doctor = db.relationship("Doctor", foreign_keys=[doctor_id])
-
+    time_slot = db.relationship("TimeSlot", foreign_keys=[time_slot_id])
+    
     def to_dict(self):
         return {
             'id': self.id,
