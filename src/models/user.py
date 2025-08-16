@@ -81,6 +81,23 @@ class User(db.Model):
     reviews = db.relationship('Review', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     favorites = db.relationship('UserFavorite', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    # Add these relationships to your User class in user.py
+
+    # Doctor reviews written by this user (patient reviews)
+    doctor_reviews = db.relationship('DoctorReview', foreign_keys='DoctorReview.patient_id', back_populates='patient', lazy='dynamic')
+
+    # Appointments for this user
+    appointments = db.relationship('Appointment', foreign_keys='Appointment.patient_id', back_populates='patient', lazy='dynamic')
+
+    # Prescriptions for this user  
+    prescriptions = db.relationship('Prescription', foreign_keys='Prescription.patient_id', back_populates='patient', lazy='dynamic')
+
+    # Appointment history for this user
+    appointment_history = db.relationship('AppointmentHistory', foreign_keys='AppointmentHistory.patient_id', lazy='dynamic')
+
+    # Appointment reminders for this user
+    appointment_reminders = db.relationship('AppointmentReminder', foreign_keys='AppointmentReminder.patient_id', lazy='dynamic')
+    
     
     def set_password(self, password):
         """Set password hash"""
