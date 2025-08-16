@@ -120,7 +120,24 @@ class Pharmacy(db.Model):
     orders = db.relationship('Order', backref='pharmacy', lazy='dynamic')
     reviews = db.relationship('Review', backref='pharmacy', lazy='dynamic')
     notifications = db.relationship('Notification', backref='pharmacy', lazy='dynamic', cascade='all, delete-orphan')
-    
+    processed_prescriptions = db.relationship(
+        'Prescription',
+        foreign_keys='Prescription.pharmacy_id',
+        back_populates='pharmacy'
+    )
+
+    verified_prescriptions = db.relationship(
+        'Prescription',
+        foreign_keys='Prescription.verified_by_pharmacy_id',
+        back_populates='verified_by_pharmacy'
+    )
+
+    filled_prescriptions = db.relationship(
+        'Prescription',
+        foreign_keys='Prescription.filled_by_pharmacy_id',
+        back_populates='filled_by_pharmacy'
+    )
+
     def set_password(self, password):
         """Set password hash"""
         self.password_hash = generate_password_hash(password)

@@ -176,6 +176,14 @@ class Doctor(db.Model):
     # Prescriptions issued by this doctor
     prescriptions = db.relationship("Prescription", back_populates="doctor", cascade="all, delete-orphan")
     
+    issued_prescriptions = db.relationship(
+        'Prescription',
+        foreign_keys='Prescription.doctor_id',
+        back_populates='doctor',
+        cascade='all, delete-orphan'
+    )
+
+
     # Reviews received by this doctor
     reviews = db.relationship("DoctorReview", back_populates="doctor", cascade="all, delete-orphan")
     

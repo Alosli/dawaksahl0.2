@@ -98,12 +98,12 @@ class Prescription(db.Model):
     last_modified_by = db.Column(db.String(100))
     
     # Relationships
-    patient = db.relationship("User", foreign_keys=[patient_id], backref="prescriptions")
-    doctor = relationship("Doctor", foreign_keys=[doctor_id], backref="issued_prescriptions")  # NEW
-    pharmacy = relationship("Pharmacy", foreign_keys=[pharmacy_id], backref="processed_prescriptions")
-    verified_by_pharmacy = relationship("Pharmacy", foreign_keys=[verified_by_pharmacy_id])
-    filled_by_pharmacy = relationship("Pharmacy", foreign_keys=[filled_by_pharmacy_id])
-    medications = relationship("PrescriptionMedication", back_populates="prescription", cascade="all, delete-orphan")
+    patient = db.relationship("User", foreign_keys=[patient_id], back_populates="prescriptions")
+    doctor = db.relationship("Doctor", foreign_keys=[doctor_id], back_populates="issued_prescriptions")  # NEW
+    pharmacy = db.relationship("Pharmacy", foreign_keys=[pharmacy_id], back_populates="processed_prescriptions")
+    verified_by_pharmacy = db.relationship("Pharmacy", foreign_keys=[verified_by_pharmacy_id], back_populates='verified_prescriptions')
+    filled_by_pharmacy = db.relationship("Pharmacy", foreign_keys=[filled_by_pharmacy_id], back_populates='filled_prescriptions')
+    medications = db.relationship("PrescriptionMedication", back_populates="prescription", cascade="all, delete-orphan")
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
