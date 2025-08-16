@@ -396,7 +396,7 @@ class TimeSlot(db.Model):
     is_recurring = db.Column(db.Boolean, default=False)  # Is this part of a recurring pattern
     recurrence_pattern = db.Column(db.String(20))  # daily, weekly, monthly
     recurrence_end_date = db.Column(db.Date)  # When does the recurrence end
-    parent_slot_id = db.Column(db.Integer, db.ForeignKey('doctor_time_slots.id'), nullable=True)
+    parent_slot_id = db.Column(db.Integer, db.ForeignKey('time_slots.id'), nullable=True, index=True)
     # ================================
     # SPECIAL CONDITIONS
     # ================================
