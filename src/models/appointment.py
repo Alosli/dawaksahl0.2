@@ -193,8 +193,8 @@ class Appointment(db.Model):
     # ================================
     # METADATA
     # ================================
-    created_at = db.Column(db.DateTime, default=datetim.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetim.utcnow, onupdate=datetim.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetim.utcnow)
     completed_at = db.Column(db.DateTime)
     
     # Booking Information
