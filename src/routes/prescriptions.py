@@ -118,7 +118,7 @@ def create_prescription():
             medications_data = json.loads(medications_data)
         
         prescription = Prescription(
-            user_id=current_user.id,
+            patient_id=current_user.id,
             doctor_name=data.get('doctor_name'),
             doctor_name_ar=data.get('doctor_name_ar'),
             doctor_license_number=data.get('doctor_license_number'),
@@ -249,7 +249,7 @@ def get_prescriptions():
         status = request.args.get('status')
         prescription_type = request.args.get('type')
         
-        query = Prescription.query.filter_by(user_id=current_user.id)
+        query = Prescription.query.filter_by(patient_id=current_user.id)
         
         if status:
             query = query.filter(Prescription.status == status)
@@ -301,7 +301,7 @@ def get_prescription(prescription_id):
                 'message_ar': 'الوصفة الطبية غير موجودة'
             }), 404
         
-        if current_user and prescription.user_id != current_user.id:
+        if current_user and prescription.patient_id != current_user.id:
             return jsonify({
                 'success': False,
                 'message': 'Access denied',
@@ -456,7 +456,7 @@ def cancel_prescription(prescription_id):
                 'message_ar': 'الوصفة الطبية غير موجودة'
             }), 404
         
-        if current_user and prescription.user_id != current_user.id:
+        if current_user and prescription.patient_id != current_user.id:
             return jsonify({
                 'success': False,
                 'message': 'Access denied',
@@ -515,7 +515,7 @@ def refill_prescription(prescription_id):
                 'message_ar': 'الوصفة الطبية غير موجودة'
             }), 404
         
-        if prescription.user_id != current_user.id:
+        if prescription.patient_id != current_user.id:
             return jsonify({
                 'success': False,
                 'message': 'Access denied',
@@ -620,11 +620,11 @@ def get_prescription_stats():
         current_pharmacy = get_current_pharmacy()
         
         if current_user:
-            total = Prescription.query.filter_by(user_id=current_user.id).count()
-            pending = Prescription.query.filter_by(user_id=current_user.id, status='pending').count()
-            verified = Prescription.query.filter_by(user_id=current_user.id, status='verified').count()
-            filled = Prescription.query.filter_by(user_id=current_user.id, status='filled').count()
-            expired = Prescription.query.filter_by(user_id=current_user.id).filter(
+            total = Prescription.query.filter_by(patient_id=current_user.id).count()
+            pending = Prescription.query.filter_by(patient_id=current_user.id, status='pending').count()
+            verified = Prescription.query.filter_by(patient_id=current_user.id, status='verified').count()
+            filled = Prescription.query.filter_by(patient_id=current_user.id, status='filled').count()
+            expired = Prescription.query.filter_by(patient_id=current_user.id).filter(
                 Prescription.expiry_date < datetime.now().date()
             ).count()
             
