@@ -90,7 +90,7 @@ class User(db.Model):
     appointments = db.relationship('Appointment', foreign_keys='Appointment.patient_id', back_populates='patient', lazy='dynamic')
 
     # Prescriptions for this user  
-    prescriptions = db.relationship('Prescription', foreign_keys='Prescription.patient_id', back_populates='patient', lazy='dynamic')
+    prescriptions = db.relationship('Prescription', foreign_keys='Prescription.patient_id', back_populates='patient', lazy='dynamic', cascade='all, delete-orphan')
 
     # Appointment history for this user
     appointment_history = db.relationship('AppointmentHistory', foreign_keys='AppointmentHistory.patient_id', lazy='dynamic')

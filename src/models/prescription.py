@@ -98,7 +98,7 @@ class Prescription(db.Model):
     last_modified_by = db.Column(db.String(100))
     
     # Relationships
-    patient = relationship("User", foreign_keys=[patient_id], backref="prescriptions")
+    patient = db.relationship("User", foreign_keys=[patient_id], backref="prescriptions")
     doctor = relationship("Doctor", foreign_keys=[doctor_id], backref="issued_prescriptions")  # NEW
     pharmacy = relationship("Pharmacy", foreign_keys=[pharmacy_id], backref="processed_prescriptions")
     verified_by_pharmacy = relationship("Pharmacy", foreign_keys=[verified_by_pharmacy_id])
