@@ -627,7 +627,7 @@ class DoctorReview(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'))
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False, unique=True)   # enforce 1:1)
     
     # Review Content
     rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
@@ -655,7 +655,7 @@ class DoctorReview(db.Model):
     # Relationships
     doctor = db.relationship("Doctor", back_populates="reviews")
     patient = db.relationship("User", back_populates="doctor_reviews")
-    appointment = db.relationship("Appointment", back_populates="review")
+    appointment = db.relationship("Appointment", back_populates="review",foreign_keys=[appointment_id])
 
     def to_dict(self):
         """Convert review to dictionary"""

@@ -225,6 +225,14 @@ class Appointment(db.Model):
     # Reminders for this appointment
     reminders = db.relationship("AppointmentReminder", foreign_keys="AppointmentReminder.appointment_id", back_populates="appointment", cascade="all, delete-orphan")
     
+    review = db.relationship(
+        'DoctorReview',
+        back_populates='appointment',
+        uselist=False,                                   # 1:1
+        cascade='all, delete-orphan',
+        foreign_keys='DoctorReview.appointment_id'
+    )
+
     # ================================
     # INDEXES FOR PERFORMANCE
     # ================================
