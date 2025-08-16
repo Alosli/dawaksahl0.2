@@ -21,13 +21,13 @@ from src.utils.auth import doctor_required, user_required
 from src.utils.file_upload import upload_file
 
 # Create blueprint
-appointment_bp = Blueprint('appointments', __name__, url_prefix='/api/v1/appointments')
+appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/v1/appointments')
 
 # ================================
 # PATIENT APPOINTMENT ENDPOINTS
 # ================================
 
-@appointment_bp.route('', methods=['POST'])
+@appointments_bp.route('', methods=['POST'])
 @jwt_required()
 @user_required
 def book_appointment():
@@ -156,7 +156,7 @@ def book_appointment():
         return jsonify({'error': 'Failed to book appointment'}), 500
 
 
-@appointment_bp.route('', methods=['GET'])
+@appointments_bp.route('', methods=['GET'])
 @jwt_required()
 @user_required
 def get_user_appointments():
@@ -211,7 +211,7 @@ def get_user_appointments():
         return jsonify({'error': 'Failed to retrieve appointments'}), 500
 
 
-@appointment_bp.route('/<int:appointment_id>', methods=['GET'])
+@appointments_bp.route('/<int:appointment_id>', methods=['GET'])
 @jwt_required()
 def get_appointment_details(appointment_id):
     """
@@ -258,7 +258,7 @@ def get_appointment_details(appointment_id):
         return jsonify({'error': 'Failed to retrieve appointment details'}), 500
 
 
-@appointment_bp.route('/<int:appointment_id>/cancel', methods=['POST'])
+@appointments_bp.route('/<int:appointment_id>/cancel', methods=['POST'])
 @jwt_required()
 def cancel_appointment(appointment_id):
     """
@@ -315,7 +315,7 @@ def cancel_appointment(appointment_id):
         return jsonify({'error': 'Failed to cancel appointment'}), 500
 
 
-@appointment_bp.route('/<int:appointment_id>/reschedule', methods=['POST'])
+@appointments_bp.route('/<int:appointment_id>/reschedule', methods=['POST'])
 @jwt_required()
 @user_required
 def reschedule_appointment(appointment_id):
@@ -398,7 +398,7 @@ def reschedule_appointment(appointment_id):
 # DOCTOR APPOINTMENT ENDPOINTS
 # ================================
 
-@appointment_bp.route('/doctor', methods=['GET'])
+@appointments_bp.route('/doctor', methods=['GET'])
 @jwt_required()
 @doctor_required
 def get_doctor_appointments():
@@ -468,7 +468,7 @@ def get_doctor_appointments():
         return jsonify({'error': 'Failed to retrieve appointments'}), 500
 
 
-@appointment_bp.route('/<int:appointment_id>/confirm', methods=['POST'])
+@appointments_bp.route('/<int:appointment_id>/confirm', methods=['POST'])
 @jwt_required()
 @doctor_required
 def confirm_appointment(appointment_id):
@@ -515,7 +515,7 @@ def confirm_appointment(appointment_id):
         return jsonify({'error': 'Failed to confirm appointment'}), 500
 
 
-@appointment_bp.route('/<int:appointment_id>/start', methods=['POST'])
+@appointments_bp.route('/<int:appointment_id>/start', methods=['POST'])
 @jwt_required()
 @doctor_required
 def start_appointment(appointment_id):
@@ -562,7 +562,7 @@ def start_appointment(appointment_id):
         return jsonify({'error': 'Failed to start appointment'}), 500
 
 
-@appointment_bp.route('/<int:appointment_id>/complete', methods=['POST'])
+@appointments_bp.route('/<int:appointment_id>/complete', methods=['POST'])
 @jwt_required()
 @doctor_required
 def complete_appointment(appointment_id):
@@ -638,7 +638,7 @@ def complete_appointment(appointment_id):
 # TIME SLOT MANAGEMENT ENDPOINTS
 # ================================
 
-@appointment_bp.route('/time-slots/available', methods=['GET'])
+@appointments_bp.route('/time-slots/available', methods=['GET'])
 def get_available_time_slots():
     """
     🕐 GET AVAILABLE TIME SLOTS
@@ -738,7 +738,7 @@ def schedule_appointment_reminders(appointment):
 # STATISTICS AND ANALYTICS
 # ================================
 
-@appointment_bp.route('/stats', methods=['GET'])
+@appointments_bp.route('/stats', methods=['GET'])
 @jwt_required()
 def get_appointment_stats():
     """
@@ -804,11 +804,11 @@ def get_appointment_stats():
 
 
 # Register error handlers
-@appointment_bp.errorhandler(404)
+@appointments_bp.errorhandler(404)
 def not_found(error):
     return jsonify({'error': 'Endpoint not found'}), 404
 
-@appointment_bp.errorhandler(500)
+@appointments_bp.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
     return jsonify({'error': 'Internal server error'}), 500

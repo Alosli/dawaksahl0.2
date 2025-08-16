@@ -65,7 +65,7 @@ def create_app(config_class=Config):
     from src.routes.users import users_bp
     from src.routes.pharmacies import pharmacies_bp
     from src.routes.cart import cart_bp
-    from src.routes.doctors import doctors_bp
+    from src.routes.doctors import doctor_auth_bp
     from src.routes.appointments import appointments_bp
     from src.routes.prescriptions import prescriptions_bp
 
