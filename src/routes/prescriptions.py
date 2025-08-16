@@ -16,18 +16,51 @@ prescriptions_bp = Blueprint('prescriptions', __name__)
 def get_current_user():
     """Get current authenticated user"""
     try:
-        current_user_id = get_jwt_identity()
-        return User.query.get(current_user_id)
-    except:
+        jwt_data = get_jwt_identity()
+        if not jwt_data:
+            return None
+        
+        # Extract user ID from JWT object
+        if isinstance(jwt_data, dict):
+            current_user_id = jwt_data.get('id')
+        else:
+            current_user_id = jwt_data
+        
+        if not current_user_id:
+            return None
+        
+        # Find user with the extracted ID
+        user = User.query.filter_by(id=str(current_user_id)).first()
+        return user
+        
+    except Exception as e:
+        print(f"Error in get_current_user: {e}")
         return None
 
 def get_current_pharmacy():
     """Get current authenticated pharmacy"""
     try:
-        current_pharmacy_id = get_jwt_identity()
-        return Pharmacy.query.get(current_pharmacy_id)
-    except:
+        jwt_data = get_jwt_identity()
+        if not jwt_data:
+            return None
+        
+        # Extract pharmacy ID from JWT object
+        if isinstance(jwt_data, dict):
+            current_pharmacy_id = jwt_data.get('id')
+        else:
+            current_pharmacy_id = jwt_data
+        
+        if not current_pharmacy_id:
+            return None
+        
+        # Find pharmacy with the extracted ID
+        pharmacy = Pharmacy.query.filter_by(id=str(current_pharmacy_id)).first()
+        return pharmacy
+        
+    except Exception as e:
+        print(f"Error in get_current_pharmacy: {e}")
         return None
+
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
@@ -203,40 +236,11 @@ def create_prescription():
 def get_prescriptions():
     """Get user's prescriptions"""
     try:
-        # Get JWT identity - it's an object!
-        jwt_data = get_jwt_identity()
-        print(f"JWT Identity: {jwt_data}")
-        
-        if not jwt_data:
-            return jsonify({
-                'success': False,
-                'message': 'Authentication required',
-                'message_ar': 'المصادقة مطلوبة'
-            }), 401
-        
-        # Extract user ID from JWT object
-        if isinstance(jwt_data, dict):
-            current_user_id = jwt_data.get('id')
-        else:
-            current_user_id = jwt_data
-        
-        print(f"Extracted User ID: {current_user_id}")
-        
-        if not current_user_id:
-            return jsonify({
-                'success': False,
-                'message': 'Invalid token format',
-                'message_ar': 'تنسيق الرمز المميز غير صحيح'
-            }), 401
-        
-        # Find user with the extracted ID
-        current_user = User.query.filter_by(id=str(current_user_id)).first()
-        print(f"Found user: {current_user.email if current_user else 'None'}")
-        
+        current_user = get_current_user()
         if not current_user:
             return jsonify({
                 'success': False,
-                'message': f'User not found with ID: {current_user_id}',
+                'message': 'User not found',
                 'message_ar': 'المستخدم غير موجود'
             }), 404
         
