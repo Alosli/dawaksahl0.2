@@ -396,8 +396,7 @@ class TimeSlot(db.Model):
     is_recurring = db.Column(db.Boolean, default=False)  # Is this part of a recurring pattern
     recurrence_pattern = db.Column(db.String(20))  # daily, weekly, monthly
     recurrence_end_date = db.Column(db.Date)  # When does the recurrence end
-    parent_slot_id = db.Column(db.Integer, db.ForeignKey('time_slots.id'))  # Reference to parent recurring slot
-    
+    parent_slot_id = db.Column(db.Integer, db.ForeignKey('doctor_time_slots.id'), nullable=True)
     # ================================
     # SPECIAL CONDITIONS
     # ================================
@@ -478,8 +477,9 @@ class TimeSlot(db.Model):
     )
 
     # Child recurring slots
-    child_slots = db.relationship("TimeSlot", back_populates="parent_slot", remote_side=[id])
-    
+    parent_slot = db.relationship('TimeSlot', remote_side=[id], back_populates='child_slots')
+    child_slots = db.relationship('TimeSlot', back_populates='parent_slot')
+
     # ================================
     # INDEXES FOR PERFORMANCE
     # ================================
