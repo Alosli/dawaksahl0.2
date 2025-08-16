@@ -82,7 +82,7 @@ def create_app(config_class=Config):
     app.register_blueprint(pharmacies_bp, url_prefix='/api/v1/pharmacies')
     app.register_blueprint(cart_bp, url_prefix='/api/v1/cart')
     app.register_blueprint(prescriptions_bp, url_prefix='/api/v1/prescriptions')    
-    app.register_blueprint(doctors_bp, url_prefix='/api/v1/doctors')
+    app.register_blueprint(doctor_auth_bp, url_prefix='/api/v1/doctors')
     app.register_blueprint(appointments_bp, url_prefix='/api/v1/appointments')
     
     # Health check endpoint
