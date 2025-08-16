@@ -4,7 +4,8 @@ Now properly linked with Doctor model to automatically pull doctor information
 """
 
 from datetime import datetime, timedelta
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Float, ForeignKey, Enum, JSON
+from sqlalchemy import Enum
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.ext.hybrid import hybrid_property
 from src.models import db
@@ -29,72 +30,72 @@ class Prescription(db.Model):
     __tablename__ = 'prescriptions'
     
     # Primary Information
-    id = Column(Integer, primary_key=True)
-    prescription_number = Column(String(50), unique=True, nullable=False, index=True)
+    id = db.Column(db.Integer, primary_key=True)
+    prescription_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
     
     # Foreign Keys - UPDATED TO LINK WITH DOCTOR
-    patient_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-    doctor_id = Column(Integer, ForeignKey('doctors.id'), nullable=False, index=True)  # NEW
-    pharmacy_id = Column(Integer, ForeignKey('pharmacies.id'), nullable=True, index=True)
+    patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False, index=True)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False, index=True)  # NEW
+    pharmacy_id = db.Column(db.String(36), db.ForeignKey('pharmacies.id'), nullable=True, index=True)
     
     # Prescription Details
-    status = Column(Enum(PrescriptionStatus), default=PrescriptionStatus.PENDING, nullable=False, index=True)
-    prescription_type = Column(Enum(PrescriptionType), default=PrescriptionType.REGULAR, nullable=False)
+    status = db.Column(db.Enum(PrescriptionStatus), default=PrescriptionStatus.PENDING, nullable=False, index=True)
+    prescription_type = db.Column(db.Enum(PrescriptionType), default=PrescriptionType.REGULAR, nullable=False)
     
     # Medical Information
-    diagnosis = Column(Text)
-    diagnosis_ar = Column(Text)
-    medical_notes = Column(Text)
-    medical_notes_ar = Column(Text)
+    diagnosis = db.Column(db.Text)
+    diagnosis_ar = db.Column(db.Text)
+    medical_notes = db.Column(db.Text)
+    medical_notes_ar = db.Column(db.Text)
     
     # REMOVED - Now pulled from Doctor model automatically
-    # doctor_name = Column(String(200))  # REMOVED
-    # doctor_name_ar = Column(String(200))  # REMOVED
-    # doctor_license = Column(String(100))  # REMOVED
-    # doctor_specialty = Column(String(100))  # REMOVED
-    # doctor_phone = Column(String(20))  # REMOVED
-    # doctor_email = Column(String(100))  # REMOVED
-    # clinic_hospital_name = Column(String(200))  # REMOVED
-    # clinic_address = Column(Text)  # REMOVED
+    # doctor_name = db.Column(db.String(200))  # REMOVED
+    # doctor_name_ar = db.Column(db.String(200))  # REMOVED
+    # doctor_license = db.Column(db.String(100))  # REMOVED
+    # doctor_specialty = db.Column(db.String(100))  # REMOVED
+    # doctor_phone = db.Column(db.String(20))  # REMOVED
+    # doctor_email = db.Column(db.String(100))  # REMOVED
+    # clinic_hospital_name = db.Column(db.String(200))  # REMOVED
+    # clinic_address = db.Column(db.Text)  # REMOVED
     
     # Prescription Management
-    issue_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    expiry_date = Column(DateTime, nullable=False)
-    valid_until = Column(DateTime)
-    refills_allowed = Column(Integer, default=0)
-    refills_remaining = Column(Integer, default=0)
+    issue_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expiry_date = db.Column(db.DateTime, nullable=False)
+    valid_until = db.Column(db.DateTime)
+    refills_allowed = db.Column(db.Integer, default=0)
+    refills_remaining = db.Column(db.Integer, default=0)
     
     # Verification and Processing
-    verification_date = Column(DateTime)
-    verified_by_pharmacy_id = Column(Integer, ForeignKey('pharmacies.id'))
-    fill_date = Column(DateTime)
-    filled_by_pharmacy_id = Column(Integer, ForeignKey('pharmacies.id'))
+    verification_date = db.Column(db.DateTime)
+    verified_by_pharmacy_id = db.Column(db.String(36), db.ForeignKey('pharmacies.id'))
+    fill_date = db.Column(db.DateTime)
+    filled_by_pharmacy_id = db.Column(db.String(36), db.ForeignKey('pharmacies.id'))
     
     # Insurance and Payment
-    insurance_coverage = Column(Float, default=0.0)
-    patient_copay = Column(Float, default=0.0)
-    total_cost = Column(Float, default=0.0)
-    insurance_claim_number = Column(String(100))
+    insurance_coverage = db.Column(db.Float, default=0.0)
+    patient_copay = db.Column(db.Float, default=0.0)
+    total_cost = db.Column(db.Float, default=0.0)
+    insurance_claim_number = db.Column(db.String(100))
     
     # File Management
-    prescription_image = Column(String(500))
-    scanned_document = Column(String(500))
+    prescription_image = db.Column(db.String(500))
+    scanned_document = db.Column(db.String(500))
     
     # Emergency and Special Handling
-    is_emergency = Column(Boolean, default=False)
-    is_controlled_substance = Column(Boolean, default=False)
-    requires_consultation = Column(Boolean, default=False)
+    is_emergency = db.Column(db.Boolean, default=False)
+    is_controlled_substance = db.Column(db.Boolean, default=False)
+    requires_consultation = db.Column(db.Boolean, default=False)
     
     # Drug Interactions and Allergies
-    drug_interactions = Column(JSON)
-    patient_allergies = Column(JSON)
-    contraindications = Column(Text)
+    drug_interactions = db.Column(db.Text)
+    patient_allergies = db.Column(db.Text)
+    contraindications = db.Column(db.Text)
     
     # Tracking and Audit
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by = Column(String(100))
-    last_modified_by = Column(String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = db.Column(db.String(100))
+    last_modified_by = db.Column(db.String(100))
     
     # Relationships
     patient = relationship("User", foreign_keys=[patient_id], backref="prescriptions")
@@ -279,59 +280,59 @@ class PrescriptionMedication(db.Model):
     __tablename__ = 'prescription_medications'
     
     # Primary Information
-    id = Column(Integer, primary_key=True)
-    prescription_id = Column(Integer, ForeignKey('prescriptions.id'), nullable=False, index=True)
+    id = db.Column(db.Integer, primary_key=True)
+    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=False, index=True)
     
     # Medication Details
-    medication_name = Column(String(200), nullable=False)
-    medication_name_ar = Column(String(200))
-    generic_name = Column(String(200))
-    generic_name_ar = Column(String(200))
-    brand_name = Column(String(200))
-    brand_name_ar = Column(String(200))
+    medication_name = db.Column(db.String(200), nullable=False)
+    medication_name_ar = db.Column(db.String(200))
+    generic_name = db.Column(db.String(200))
+    generic_name_ar = db.Column(db.String(200))
+    brand_name = db.Column(db.String(200))
+    brand_name_ar = db.Column(db.String(200))
     
     # Dosage and Administration
-    dosage = Column(String(100), nullable=False)  # e.g., "500mg"
-    dosage_form = Column(String(50))  # tablet, capsule, syrup, etc.
-    frequency = Column(String(100), nullable=False)  # e.g., "twice daily"
-    frequency_ar = Column(String(100))
-    route_of_administration = Column(String(50))  # oral, topical, injection
+    dosage = db.Column(db.String(100), nullable=False)  # e.g., "500mg"
+    dosage_form = db.Column(db.String(50))  # tablet, capsule, syrup, etc.
+    frequency = db.Column(db.String(100), nullable=False)  # e.g., "twice daily"
+    frequency_ar = db.Column(db.String(100))
+    route_of_administration = db.Column(db.String(50))  # oral, topical, injection
     
     # Duration and Quantity
-    duration_days = Column(Integer)
-    quantity = Column(Integer, nullable=False)
-    quantity_unit = Column(String(20), default='tablets')  # tablets, bottles, tubes
+    duration_days = db.Column(db.Integer)
+    quantity = db.Column(db.Integer, nullable=False)
+    quantity_unit = db.Column(db.String(20), default='tablets')  # tablets, bottles, tubes
     
     # Instructions
-    instructions = Column(Text)
-    instructions_ar = Column(Text)
-    special_instructions = Column(Text)
-    special_instructions_ar = Column(Text)
+    instructions = db.Column(db.Text)
+    instructions_ar = db.Column(db.Text)
+    special_instructions = db.Column(db.Text)
+    special_instructions_ar = db.Column(db.Text)
     
     # Substitution and Alternatives
-    substitution_allowed = Column(Boolean, default=True)
-    alternative_medications = Column(JSON)
+    substitution_allowed = db.Column(db.Boolean, default=True)
+    alternative_medications = db.Column(db.Text)
     
     # Cost and Insurance
-    unit_price = Column(Float)
-    total_cost = Column(Float)
-    insurance_covered = Column(Boolean, default=False)
-    copay_amount = Column(Float)
+    unit_price = db.Column(db.Float)
+    total_cost = db.Column(db.Float)
+    insurance_covered = db.Column(db.Boolean, default=False)
+    copay_amount = db.Column(db.Float)
     
     # Safety and Monitoring
-    side_effects = Column(Text)
-    side_effects_ar = Column(Text)
-    contraindications = Column(Text)
-    monitoring_required = Column(Boolean, default=False)
+    side_effects = db.Column(db.Text)
+    side_effects_ar = db.Column(db.Text)
+    contraindications = db.Column(db.Text)
+    monitoring_required = db.Column(db.Boolean, default=False)
     
     # Dispensing Information
-    dispensed_quantity = Column(Integer, default=0)
-    remaining_quantity = Column(Integer)
-    last_dispensed_date = Column(DateTime)
+    dispensed_quantity = db.Column(db.Integer, default=0)
+    remaining_quantity = db.Column(db.Integer)
+    last_dispensed_date = db.Column(db.DateTime)
     
     # Tracking
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     prescription = relationship("Prescription", back_populates="medications")

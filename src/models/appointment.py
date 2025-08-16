@@ -29,7 +29,7 @@ class Appointment(db.Model):
     # ================================
     # RELATIONSHIPS - PROPER ARCHITECTURE
     # ================================
-    patient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     time_slot_id = db.Column(db.Integer, db.ForeignKey('time_slots.id'), nullable=False)  # Links to doctor's TimeSlot!
     
@@ -505,7 +505,7 @@ class AppointmentWaitingList(db.Model):
     __tablename__ = 'appointment_waiting_list'
 
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     
     # Preferred Appointment Details
