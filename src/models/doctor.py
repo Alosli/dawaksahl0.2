@@ -171,7 +171,7 @@ class Doctor(db.Model):
     time_slots = db.relationship("TimeSlot", back_populates="doctor", cascade="all, delete-orphan")
     
     # Appointments (through TimeSlots)
-    .relatioappointments = dbnship("Appointment", back_populates="doctor", cascade="all, delete-orphan")
+    appointments = db.relationship("Appointment", back_populates="doctor", cascade="all, delete-orphan")
     
     # Prescriptions issued by this doctor
     prescriptions = db.relationship("Prescription", back_populates="doctor", cascade="all, delete-orphan")
