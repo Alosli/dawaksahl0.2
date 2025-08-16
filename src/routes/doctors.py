@@ -303,7 +303,6 @@ def login_doctor():
         }), 500
 
 @doctor_auth_bp.route('/profile', methods=['GET'])
-@doctor_auth_required
 def get_doctor_profile():
     """Get doctor profile"""
     try:
