@@ -70,8 +70,10 @@ def upload_prescription_file(file):
 def get_prescriptions():
     """Get user's prescriptions"""
     try:
-        # Direct JWT identity handling
+        # Get JWT identity directly - no helper function
         current_user_id = get_jwt_identity()
+        print(f"JWT Identity: {current_user_id}")
+        
         if not current_user_id:
             return jsonify({
                 'success': False,
@@ -79,14 +81,41 @@ def get_prescriptions():
                 'message_ar': 'المصادقة مطلوبة'
             }), 401
         
-        # Find user directly
+        # Find user directly with multiple attempts
+        current_user = None
+        
+        # Try as string UUID
         current_user = User.query.filter_by(id=str(current_user_id)).first()
+        print(f"Try 1 - String UUID: {current_user}")
+        
+        # Try as integer if string failed
         if not current_user:
+            try:
+                current_user = User.query.filter_by(id=int(current_user_id)).first()
+                print(f"Try 2 - Integer: {current_user}")
+            except:
+                pass
+        
+        # Try direct get method
+        if not current_user:
+            current_user = User.query.get(current_user_id)
+            print(f"Try 3 - Direct get: {current_user}")
+        
+        # Debug: Show what users exist
+        if not current_user:
+            user_count = User.query.count()
+            first_user = User.query.first()
+            print(f"Total users: {user_count}")
+            print(f"First user ID: {first_user.id if first_user else 'None'}")
+            print(f"First user ID type: {type(first_user.id) if first_user else 'None'}")
+            
             return jsonify({
                 'success': False,
-                'message': 'User not found',
+                'message': f'User not found with ID: {current_user_id}',
                 'message_ar': 'المستخدم غير موجود'
             }), 404
+        
+        print(f"Found user: {current_user.email}")
         
         # Get query parameters
         page = int(request.args.get('page', 1))
@@ -125,12 +154,15 @@ def get_prescriptions():
         }), 200
         
     except Exception as e:
-        current_app.logger.error(f"Error fetching prescriptions: {str(e)}")
+        print(f"Error in get_prescriptions: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error fetching prescriptions: {str(e)}',
             'message_ar': 'خطأ في جلب الوصفات الطبية'
         }), 500
+
 
 @prescriptions_bp.route('/prescriptions/<prescription_id>', methods=['GET'])
 @jwt_required()
