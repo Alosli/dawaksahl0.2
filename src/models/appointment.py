@@ -439,7 +439,7 @@ class AppointmentHistory(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True, index=True)
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False, index=True)
     
     # Change Details
     changed_by_type = db.Column(db.String(20), nullable=False)  # patient, doctor, admin, system
@@ -455,7 +455,7 @@ class AppointmentHistory(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    appointment = db.relationship("Appointment", back_populates="history")
+    appointment = db.relationship("Appointment", back_populates="history", foreign_keys=[appointment_id])
 
     def to_dict(self):
         return {
@@ -476,7 +476,7 @@ class AppointmentReminder(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True, index=True)    
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False, index=True)
     
     # Reminder Details
     reminder_type = db.Column(db.String(20), nullable=False)  # sms, email, push, whatsapp
@@ -493,7 +493,7 @@ class AppointmentReminder(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    appointment = db.relationship("Appointment", back_populates="reminders")
+    appointment = db.relationship("Appointment", back_populates="reminders", foreign_keys=[appointment_id])
 
     def to_dict(self):
         return {

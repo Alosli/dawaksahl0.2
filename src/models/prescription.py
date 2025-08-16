@@ -64,7 +64,13 @@ class Prescription(db.Model):
     valid_until = db.Column(db.DateTime)
     refills_allowed = db.Column(db.Integer, default=0)
     refills_remaining = db.Column(db.Integer, default=0)
-    
+    appointment_id = db.Column(
+        db.Integer,
+        db.ForeignKey('appointments.id'),
+        nullable=True,      # or True if prescriptions can exist without an appointment
+        unique=True,
+        index=True
+    )
     # Verification and Processing
     verification_date = db.Column(db.DateTime)
     verified_by_pharmacy_id = db.Column(db.String(36), db.ForeignKey('pharmacies.id'))
@@ -104,6 +110,11 @@ class Prescription(db.Model):
     verified_by_pharmacy = db.relationship("Pharmacy", foreign_keys=[verified_by_pharmacy_id], back_populates='verified_prescriptions')
     filled_by_pharmacy = db.relationship("Pharmacy", foreign_keys=[filled_by_pharmacy_id], back_populates='filled_prescriptions')
     medications = db.relationship("PrescriptionMedication", back_populates="prescription", cascade="all, delete-orphan")
+    appointment = db.relationship(
+        'Appointment',
+        back_populates='prescription',
+        foreign_keys=[appointment_id]
+    )
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

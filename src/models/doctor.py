@@ -635,7 +635,7 @@ class DoctorReview(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False, unique=True)   # enforce 1:1)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False, unique=True, index=True)   # enforce 1:1)
     
     # Review Content
     rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
