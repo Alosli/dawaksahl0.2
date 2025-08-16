@@ -529,7 +529,6 @@ class AppointmentWaitingList(db.Model):
     # Relationships
     patient = db.relationship("User", foreign_keys=[patient_id])
     doctor = db.relationship("Doctor", foreign_keys=[doctor_id])
-    time_slot = db.relationship("TimeSlot", foreign_keys=[time_slot_id])
     
     def to_dict(self):
         return {
