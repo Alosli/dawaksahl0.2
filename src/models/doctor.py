@@ -4,7 +4,7 @@ Proper architecture: Doctor creates TimeSlots, Appointments reference TimeSlots
 This is the correct way to design appointment scheduling!
 """
 
-from DateTime import DateTime, timedelta, time, date
+from datetime import datetime, timedelta, time, date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, validates
 from werkzeug.security import generate_password_hash, check_password_hash

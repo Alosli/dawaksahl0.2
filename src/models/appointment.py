@@ -5,7 +5,7 @@ No duplicate TimeSlot class - clean and logical design!
 """
 
 from datetime import datetime, timedelta
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Date, Time, DECIMAL, JSON, ForeignKey, Index
+from sqlalchemy import Index
 from sqlalchemy.orm import relationship, validates
 from flask_sqlalchemy import SQLAlchemy
 import uuid
