@@ -56,160 +56,22 @@ def upload_prescription_file(file):
         return f"/uploads/prescriptions/{filename}"
     return None
 
-@prescriptions_bp.route('/prescriptions', methods=['POST'])
-@jwt_required()
-def create_prescription():
-    """Create a new prescription"""
-    try:
-        current_user = get_current_user()
-        if not current_user:
-            return jsonify({
-                'success': False,
-                'message': 'User not found',
-                'message_ar': 'المستخدم غير موجود'
-            }), 404
-        
-        data = request.get_json() if request.is_json else request.form.to_dict()
-        
-        required_fields = ['doctor_name', 'issued_date', 'medications']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({
-                    'success': False,
-                    'message': f'{field} is required',
-                    'message_ar': f'{field} مطلوب'
-                }), 400
-        
-        prescription_image_url = None
-        if 'prescription_image' in request.files:
-            file = request.files['prescription_image']
-            prescription_image_url = upload_prescription_file(file)
-        
-        medications_data = data.get('medications')
-        if isinstance(medications_data, str):
-            import json
-            medications_data = json.loads(medications_data)
-        
-        prescription = Prescription(
-            user_id=current_user.id,
-            doctor_name=data.get('doctor_name'),
-            doctor_name_ar=data.get('doctor_name_ar'),
-            doctor_license_number=data.get('doctor_license_number'),
-            doctor_specialty=data.get('doctor_specialty'),
-            doctor_specialty_ar=data.get('doctor_specialty_ar'),
-            doctor_phone=data.get('doctor_phone'),
-            doctor_email=data.get('doctor_email'),
-            clinic_hospital_name=data.get('clinic_hospital_name'),
-            clinic_hospital_name_ar=data.get('clinic_hospital_name_ar'),
-            clinic_address=data.get('clinic_address'),
-            clinic_address_ar=data.get('clinic_address_ar'),
-            diagnosis=data.get('diagnosis'),
-            diagnosis_ar=data.get('diagnosis_ar'),
-            diagnosis_code=data.get('diagnosis_code'),
-            prescription_image_url=prescription_image_url,
-            issued_date=datetime.strptime(data.get('issued_date'), '%Y-%m-%d').date(),
-            expiry_date=datetime.strptime(data.get('expiry_date'), '%Y-%m-%d').date() if data.get('expiry_date') else None,
-            refills_allowed=int(data.get('refills_allowed', 0)),
-            general_instructions=data.get('general_instructions'),
-            general_instructions_ar=data.get('general_instructions_ar'),
-            dietary_restrictions=data.get('dietary_restrictions'),
-            dietary_restrictions_ar=data.get('dietary_restrictions_ar'),
-            lifestyle_recommendations=data.get('lifestyle_recommendations'),
-            lifestyle_recommendations_ar=data.get('lifestyle_recommendations_ar'),
-            is_emergency=data.get('is_emergency', False),
-            emergency_contact_name=data.get('emergency_contact_name'),
-            emergency_contact_phone=data.get('emergency_contact_phone'),
-            insurance_provider=data.get('insurance_provider'),
-            insurance_policy_number=data.get('insurance_policy_number'),
-            insurance_coverage_percentage=float(data.get('insurance_coverage_percentage', 0)),
-            patient_copay_amount=float(data.get('patient_copay_amount', 0)),
-            follow_up_required=data.get('follow_up_required', False),
-            follow_up_date=datetime.strptime(data.get('follow_up_date'), '%Y-%m-%d').date() if data.get('follow_up_date') else None,
-            follow_up_instructions=data.get('follow_up_instructions'),
-            follow_up_instructions_ar=data.get('follow_up_instructions_ar'),
-            prescription_type=data.get('prescription_type', 'acute'),
-            priority=data.get('priority', 'normal'),
-            requires_counseling=data.get('requires_counseling', False),
-            requires_monitoring=data.get('requires_monitoring', False),
-            has_drug_interactions=data.get('has_drug_interactions', False),
-            has_allergies_warnings=data.get('has_allergies_warnings', False)
-        )
-        
-        db.session.add(prescription)
-        db.session.flush()
-        
-        for med_data in medications_data:
-            medication = PrescriptionMedication(
-                prescription_id=prescription.id,
-                product_id=med_data.get('product_id'),
-                medication_name=med_data.get('medication_name'),
-                medication_name_ar=med_data.get('medication_name_ar'),
-                generic_name=med_data.get('generic_name'),
-                generic_name_ar=med_data.get('generic_name_ar'),
-                brand_name=med_data.get('brand_name'),
-                brand_name_ar=med_data.get('brand_name_ar'),
-                strength=med_data.get('strength'),
-                dosage_form=med_data.get('dosage_form'),
-                dosage_form_ar=med_data.get('dosage_form_ar'),
-                quantity_prescribed=int(med_data.get('quantity_prescribed', 1)),
-                unit=med_data.get('unit', 'tablet'),
-                dosage_instructions=med_data.get('dosage_instructions'),
-                dosage_instructions_ar=med_data.get('dosage_instructions_ar'),
-                frequency=med_data.get('frequency'),
-                frequency_ar=med_data.get('frequency_ar'),
-                duration=med_data.get('duration'),
-                duration_ar=med_data.get('duration_ar'),
-                route_of_administration=med_data.get('route_of_administration'),
-                route_of_administration_ar=med_data.get('route_of_administration_ar'),
-                timing_instructions=med_data.get('timing_instructions'),
-                timing_instructions_ar=med_data.get('timing_instructions_ar'),
-                special_instructions=med_data.get('special_instructions'),
-                special_instructions_ar=med_data.get('special_instructions_ar'),
-                storage_instructions=med_data.get('storage_instructions'),
-                storage_instructions_ar=med_data.get('storage_instructions_ar'),
-                warnings=med_data.get('warnings'),
-                warnings_ar=med_data.get('warnings_ar'),
-                contraindications=med_data.get('contraindications'),
-                contraindications_ar=med_data.get('contraindications_ar'),
-                side_effects=med_data.get('side_effects'),
-                side_effects_ar=med_data.get('side_effects_ar'),
-                food_interactions=med_data.get('food_interactions'),
-                food_interactions_ar=med_data.get('food_interactions_ar'),
-                unit_price=float(med_data.get('unit_price', 0)) if med_data.get('unit_price') else None,
-                is_controlled_substance=med_data.get('is_controlled_substance', False),
-                controlled_substance_schedule=med_data.get('controlled_substance_schedule'),
-                refills_allowed=int(med_data.get('refills_allowed', 0))
-            )
-            
-            if med_data.get('drug_interactions'):
-                medication.set_drug_interactions(med_data['drug_interactions'])
-            
-            medication.calculate_total_cost()
-            db.session.add(medication)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Prescription created successfully',
-            'message_ar': 'تم إنشاء الوصفة الطبية بنجاح',
-            'data': prescription.to_dict(language=request.headers.get('Accept-Language', 'ar'))
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': f'Error creating prescription: {str(e)}',
-            'message_ar': 'خطأ في إنشاء الوصفة الطبية'
-        }), 500
-
 @prescriptions_bp.route('/prescriptions', methods=['GET'])
 @jwt_required()
 def get_prescriptions():
     """Get user's prescriptions"""
     try:
-        current_user = get_current_user()
+        # Direct JWT identity handling
+        current_user_id = get_jwt_identity()
+        if not current_user_id:
+            return jsonify({
+                'success': False,
+                'message': 'Authentication required',
+                'message_ar': 'المصادقة مطلوبة'
+            }), 401
+        
+        # Find user directly
+        current_user = User.query.filter_by(id=str(current_user_id)).first()
         if not current_user:
             return jsonify({
                 'success': False,
@@ -217,11 +79,13 @@ def get_prescriptions():
                 'message_ar': 'المستخدم غير موجود'
             }), 404
         
+        # Get query parameters
         page = int(request.args.get('page', 1))
         per_page = min(int(request.args.get('per_page', 10)), 50)
         status = request.args.get('status')
         prescription_type = request.args.get('type')
         
+        # Build query
         query = Prescription.query.filter_by(user_id=current_user.id)
         
         if status:
@@ -252,6 +116,7 @@ def get_prescriptions():
         }), 200
         
     except Exception as e:
+        current_app.logger.error(f"Error fetching prescriptions: {str(e)}")
         return jsonify({
             'success': False,
             'message': f'Error fetching prescriptions: {str(e)}',
