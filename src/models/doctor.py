@@ -159,8 +159,8 @@ class Doctor(db.Model):
     # ================================
     # METADATA
     # ================================
-    created_at = db.Column(db.DateTime, default=db.DateTime.utcnow)
-    updated_at = db.Column(db.DateTime, default=db.DateTime.utcnow, onupdate=db.DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=DateTime.utcnow)
+    updated_at = db.Column(db.DateTime, default=DateTime.utcnow, onupdate=db.DateTime.utcnow)
     last_login = db.Column(db.DateTime)
     last_activity = db.Column(db.DateTime)
     
@@ -210,7 +210,7 @@ class Doctor(db.Model):
         payload = {
             'doctor_id': self.id,
             'email': self.email,
-            'exp': db.DateTime.utcnow() + timedelta(seconds=expires_in)
+            'exp': DateTime.utcnow() + timedelta(seconds=expires_in)
         }
         return jwt.encode(payload, os.getenv('SECRET_KEY', 'dev-secret'), algorithm='HS256')
 
@@ -282,10 +282,9 @@ class Doctor(db.Model):
 
     def get_next_available_slot(self):
         """Get the next available time slot for this doctor"""
-        from db.DateTime import db.DateTime, timedelta
         
         # Get available slots for the next 7 days
-        start_date = db.DateTime.now().db.Date()
+        start_date = DateTime.now().Date()
         end_date = start_date + timedelta(days=7)
         
         available_slots = []
@@ -455,8 +454,8 @@ class TimeSlot(db.Model):
     # ================================
     # METADATA
     # ================================
-    created_at = db.Column(db.DateTime, default=db.DateTime.utcnow)
-    updated_at = db.Column(db.DateTime, default=db.DateTime.utcnow, onupdate=db.DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default=DateTime.utcnow)
+    updated_at = db.Column(db.DateTime, default=DateTime.utcnow, onupdate=db.DateTime.utcnow)
     created_by = db.Column(db.String(20), default='doctor')  # doctor, admin, system
     
     # Booking Information
@@ -534,8 +533,8 @@ class TimeSlot(db.Model):
             return False, f"This slot is restricted to {self.gender_restriction} patients"
         
         # Check advance booking requirement
-        now = db.DateTime.now()
-        slot_datetime = db.DateTime.combine(self.date, self.start_time)
+        now = DateTime.now()
+        slot_datetime = DateTime.combine(self.date, self.start_time)
         hours_until_slot = (slot_datetime - now).total_seconds() / 3600
         
         if hours_until_slot < self.advance_booking_hours:
@@ -552,8 +551,8 @@ class TimeSlot(db.Model):
         self.total_bookings += 1
         
         if not self.first_booked_at:
-            self.first_booked_at = db.DateTime.utcnow()
-        self.last_booked_at = db.DateTime.utcnow()
+            self.first_booked_at = DateTime.utcnow()
+        self.last_booked_at = DateTime.utcnow()
         
         # Mark as booked if at capacity
         if self.current_appointments >= self.max_appointments:
@@ -570,8 +569,8 @@ class TimeSlot(db.Model):
         return max(0, self.max_appointments - self.current_appointments)
 
     def get_slot_datetime(self):
-        """Get slot as db.DateTime object"""
-        return db.DateTime.combine(self.date, self.start_time)
+        """Get slot as DateTime object"""
+        return DateTime.combine(self.date, self.start_time)
 
     def get_consultation_fee(self):
         """Get the consultation fee for this slot"""
@@ -645,8 +644,8 @@ class DoctorReview(db.Model):
     doctor_response_date = db.Column(db.DateTime)
     
     # Metadata
-    created_at = db.Column(db.DateTime, default=db.DateTime.utcnow)
-    updated_at = db.Column(db.DateTime, default=db.DateTime.utcnow, onupdate=db.DateTime.utcnow)
+    created_at = db.Column(db.DateTime, default= DateTime.utcnow)
+    updated_at = db.Column(db.DateTime, default= DateTime.utcnow, onupdate=db.DateTime.utcnow)
     
     # Relationships
     doctor = relationship("Doctor", back_populates="reviews")
