@@ -467,6 +467,7 @@ class AppointmentReminder(db.Model):
     __tablename__ = 'appointment_reminders'
 
     id = db.Column(db.Integer, primary_key=True)
+    patient_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True, index=True)    
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False)
     
     # Reminder Details
