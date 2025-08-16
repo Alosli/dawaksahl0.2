@@ -14,12 +14,18 @@ from src.models.product import Product
 prescriptions_bp = Blueprint('prescriptions', __name__)
 
 def get_current_user():
-    """Get current authenticated user"""
     try:
         current_user_id = get_jwt_identity()
-        return User.query.get(current_user_id)
-    except:
+        if not current_user_id:
+            return None
+        
+        # Use filter_by for string UUIDs (more reliable)
+        user = User.query.filter_by(id=str(current_user_id)).first()
+        return user
+    except Exception as e:
+        print(f"Error getting current user: {e}")
         return None
+
 
 def get_current_pharmacy():
     """Get current authenticated pharmacy"""
