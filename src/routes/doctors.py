@@ -191,7 +191,7 @@ def register_doctor():
             medical_license_number=data['medical_license_number'],
             license_expiry_date=license_expiry_date,
             primary_specialty=data['specialty'],            # match model field
-            subspecialty=data.get('subspecialty'),
+            subspecialties=data.get('subspecialty'),
             years_of_experience=int(data['years_of_experience']),
             medical_school=data['medical_school'],
             medical_school_ar=data.get('medical_school_ar'),
