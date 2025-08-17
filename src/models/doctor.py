@@ -226,26 +226,7 @@ class Doctor(db.Model):
         # Format as DR00001 (5 digits with leading zeros)
         return f"DR{next_number:05d}"
 
-    # Auto-generate doctor_number before insert
-    @event.listens_for(Doctor, 'before_insert')
-    def generate_doctor_number_before_insert(mapper, connection, target):
-        """Auto-generate doctor number before inserting new doctor"""
-        if not target.doctor_number:
-            # Use raw SQL to avoid session conflicts
-            result = connection.execute(
-                "SELECT doctor_number FROM doctors WHERE doctor_number LIKE 'DR%' ORDER BY doctor_number DESC LIMIT 1"
-            ).fetchone()
-            
-            if result:
-                try:
-                    last_number = int(result[0][2:])  # Remove 'DR' prefix
-                    next_number = last_number + 1
-                except (ValueError, IndexError):
-                    next_number = 1
-            else:
-                next_number = 1
-            
-            target.doctor_number = f"DR{next_number:05d}"
+
     # ================================
     # PASSWORD METHODS
     # ================================
@@ -405,6 +386,26 @@ class Doctor(db.Model):
         }
         return data
 
+# Auto-generate doctor_number before insert
+@event.listens_for(Doctor, 'before_insert')
+def generate_doctor_number_before_insert(mapper, connection, target):
+    """Auto-generate doctor number before inserting new doctor"""
+    if not target.doctor_number:
+        # Use raw SQL to avoid session conflicts
+        result = connection.execute(
+            "SELECT doctor_number FROM doctors WHERE doctor_number LIKE 'DR%' ORDER BY doctor_number DESC LIMIT 1"
+        ).fetchone()
+            
+        if result:
+            try:
+                last_number = int(result[0][2:])  # Remove 'DR' prefix
+                next_number = last_number + 1
+            except (ValueError, IndexError):
+                next_number = 1
+        else:
+            next_number = 1
+            
+        target.doctor_number = f"DR{next_number:05d}"
 
 class TimeSlot(db.Model):
     """
