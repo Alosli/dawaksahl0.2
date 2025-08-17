@@ -5,6 +5,8 @@ import os
 import uuid
 from functools import wraps
 from src.models import db
+from werkzeug.security import check_password_hash, generate_password_hash
+
 
 
 # Import your models (adjust imports based on your project structure)
