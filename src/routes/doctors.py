@@ -90,12 +90,12 @@ def register_doctor():
             }), 400
         
         # Check if license number already exists
-        if Doctor.query.filter_by(mediacl_license_number=data['mediacl_license_number']).first():
+        if Doctor.query.filter_by(medical_license_number=data['medical_license_number']).first():
             return jsonify({
                 'success': False,
                 'message': 'رقم الترخيص مستخدم بالفعل',
                 'message_en': 'License number already registered',
-                'errors': {'mediacl_license_number': 'رقم الترخيص مستخدم بالفعل' if language == 'ar' else 'License number already exists'}
+                'errors': {'medical_license_number': 'رقم الترخيص مستخدم بالفعل' if language == 'ar' else 'License number already exists'}
             }), 400
         
         # Handle file uploads
@@ -186,7 +186,7 @@ def register_doctor():
             nationality=data.get('nationality'),
             
             # Professional Information
-            mediacl_license_number=data['mediacl_license_number'],
+            medical_license_number=data['medical_license_number'],
             license_expiry_date=license_expiry_date,
             specialty=data['specialty'],
             subspecialty=data.get('subspecialty'),
