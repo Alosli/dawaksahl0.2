@@ -114,7 +114,7 @@ class Doctor(db.Model):
     consultation_duration = db.Column(db.Integer, default=30)  # Default appointment duration in minutes
     advance_booking_days = db.Column(db.Integer, default=30)  # How far in advance patients can book
     cancellation_policy_hours = db.Column(db.Integer, default=24)  # Cancellation notice required
-    
+    working_hours = db.Column(db.Text, nullable=False)
     # Consultation Modes
     offers_in_person = db.Column(db.Boolean, default=True)
     offers_video_consultation = db.Column(db.Boolean, default=False)
@@ -349,6 +349,7 @@ class Doctor(db.Model):
             'bio': self.bio,
             'bio_ar': self.bio_ar,
             'languages': self.languages_spoken,
+            'working_hours': self.working_hours,
             'services': self.services_offered,
             'consultation_modes': {
                 'in_person': self.offers_in_person,

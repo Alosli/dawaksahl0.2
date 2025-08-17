@@ -70,7 +70,7 @@ def register_doctor():
             'first_name', 'last_name', 'email', 'phone', 'password',
             'medical_license_number', 'specialty', 'years_of_experience',
             'medical_school', 'graduation_year', 'clinic_hospital_name',
-            'clinic_address', 'consultation_fee'
+            'clinic_address', 'working_hours', 'consultation_fee'
         ]
         
         missing_fields = [field for field in required_fields if not data.get(field)]
@@ -156,7 +156,6 @@ def register_doctor():
                 pass
         
         # Parse working hours and languages
-        working_hours = None
         languages_spoken = ['ar']  # Default to Arabic
         
         if data.get('working_hours'):
@@ -218,7 +217,7 @@ def register_doctor():
             accepts_insurance=data.get('accepts_insurance', True),
             offers_telemedicine=data.get('offers_telemedicine', False),
             languages_spoken=languages_spoken,
-            working_hours=working_hours
+            working_hours=data.get('working_hours')
         )
         
         # Save to database
