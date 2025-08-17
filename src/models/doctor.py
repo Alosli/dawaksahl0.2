@@ -105,7 +105,9 @@ class Doctor(db.Model):
     # Payment Methods Accepted
     accepted_payment_methods = db.Column(db.TEXT)  # ["card", "cash", "apple_pay", "stc_pay", "insurance"]
     accepted_insurance_providers = db.Column(db.TEXT)  # Array of insurance companies
-    
+    accepts_insurance = db.Column(db.Boolean, default=False)
+    offers_telemedicine = db.Column(db.Boolean, default=False)
+
     # ================================
     # AVAILABILITY AND SCHEDULING
     # ================================
