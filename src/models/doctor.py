@@ -249,7 +249,7 @@ class Doctor(db.Model):
         """Validate Saudi phone number"""
         import re
         # Saudi phone number format: +966XXXXXXXXX or 05XXXXXXXX
-        if not re.match(r'^(\+966|0)?5[0-9]{8}$', phone):
+        if not re.match(r'^(\+967|7)?[0-9]{9}$', phone):
             raise ValueError('Invalid Saudi phone number format')
         return phone
 

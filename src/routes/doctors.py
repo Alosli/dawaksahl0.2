@@ -66,7 +66,7 @@ def register_doctor():
         # Validate required fields
         required_fields = [
             'first_name', 'last_name', 'email', 'phone', 'password',
-            'license_number', 'specialty', 'years_of_experience',
+            'medical_license_number', 'specialty', 'years_of_experience',
             'medical_school', 'graduation_year', 'clinic_hospital_name',
             'clinic_address', 'consultation_fee'
         ]
