@@ -200,8 +200,7 @@ def register_doctor():
             # Practice Information
             clinic_hospital_name=data['clinic_hospital_name'],
             clinic_hospital_name_ar=data.get('clinic_hospital_name_ar'),
-            address=data['address'],
-            address_ar=data['address_ar'],
+            address=data['clinic_address'],
             city=data['city'],
             district=data['district'],
             clinic_phone=data.get('clinic_phone'),
