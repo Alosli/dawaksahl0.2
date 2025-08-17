@@ -64,7 +64,7 @@ def register_doctor():
         data = request.get_json() if request.is_json else request.form.to_dict()
         files = request.files
         language = get_language()
-        
+        password = data['password']
         # Validate required fields
         required_fields = [
             'first_name', 'last_name', 'email', 'phone', 'password',
