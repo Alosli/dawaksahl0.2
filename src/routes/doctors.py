@@ -180,7 +180,7 @@ def register_doctor():
             last_name_ar=data.get('last_name_ar'),
             email=data['email'].lower(),
             phone=data['phone'],
-            password=data['password'],
+            password_hash=generate_password_hash(password),
             date_of_birth=date_of_birth,
             gender=data.get('gender'),
             nationality=data.get('nationality'),
