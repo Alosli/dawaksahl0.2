@@ -201,8 +201,6 @@ def register_doctor():
             clinic_hospital_name=data['clinic_hospital_name'],
             clinic_hospital_name_ar=data.get('clinic_hospital_name_ar'),
             address=data['clinic_address'],
-            city=data['city'],
-            district=data['district'],
             clinic_phone=data.get('clinic_phone'),
             consultation_fee=float(data['consultation_fee']),
             bio=data.get('bio'),
