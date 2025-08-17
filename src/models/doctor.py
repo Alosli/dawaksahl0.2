@@ -6,12 +6,12 @@ This is the correct way to design appointment scheduling!
 
 from datetime import datetime, timedelta, time, date
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.orm import relationship, validates, Session
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import os
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Index
+from sqlalchemy import Index, event
 
 # Import your existing db instance
 from src.models import db
@@ -200,7 +200,52 @@ class Doctor(db.Model):
         Index('idx_doctor_status', 'is_active', 'is_verified'),
         Index('idx_doctor_license', 'medical_license_number'),
     )
+    def __init__(self, **kwargs):
+        # Remove doctor_number from kwargs if present (we'll auto-generate)
+        kwargs.pop('doctor_number', None)
+        super().__init__(**kwargs)
+    
+    @staticmethod
+    def generate_doctor_number():
+        """Generate next doctor number in format DR00001"""
+        # Get the highest existing doctor number
+        last_doctor = Doctor.query.filter(
+            Doctor.doctor_number.like('DR%')
+        ).order_by(Doctor.doctor_number.desc()).first()
+        
+        if last_doctor:
+            # Extract number from DR00001 format
+            try:
+                last_number = int(last_doctor.doctor_number[2:])  # Remove 'DR' prefix
+                next_number = last_number + 1
+            except (ValueError, IndexError):
+                next_number = 1
+        else:
+            next_number = 1
+        
+        # Format as DR00001 (5 digits with leading zeros)
+        return f"DR{next_number:05d}"
 
+    # Auto-generate doctor_number before insert
+    @event.listens_for(Doctor, 'before_insert')
+    def generate_doctor_number_before_insert(mapper, connection, target):
+        """Auto-generate doctor number before inserting new doctor"""
+        if not target.doctor_number:
+            # Use raw SQL to avoid session conflicts
+            result = connection.execute(
+                "SELECT doctor_number FROM doctors WHERE doctor_number LIKE 'DR%' ORDER BY doctor_number DESC LIMIT 1"
+            ).fetchone()
+            
+            if result:
+                try:
+                    last_number = int(result[0][2:])  # Remove 'DR' prefix
+                    next_number = last_number + 1
+                except (ValueError, IndexError):
+                    next_number = 1
+            else:
+                next_number = 1
+            
+            target.doctor_number = f"DR{next_number:05d}"
     # ================================
     # PASSWORD METHODS
     # ================================
