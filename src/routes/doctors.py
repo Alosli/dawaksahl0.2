@@ -200,8 +200,10 @@ def register_doctor():
             # Practice Information
             clinic_hospital_name=data['clinic_hospital_name'],
             clinic_hospital_name_ar=data.get('clinic_hospital_name_ar'),
-            clinic_address=data['clinic_address'],
-            clinic_address_ar=data.get('clinic_address_ar'),
+            address=data['address'],
+            address_ar=data['address_ar'],
+            city=data['city'],
+            district=data['district'],
             clinic_phone=data.get('clinic_phone'),
             consultation_fee=float(data['consultation_fee']),
             bio=data.get('bio'),
@@ -212,8 +214,8 @@ def register_doctor():
             longitude=longitude,
             
             # Files
-            profile_picture_url=profile_picture_url,
-            license_document_url=license_document_url,
+            profile_picture=profile_picture_url,
+            license_document=license_document_url,
             
             # Settings
             accepts_insurance=data.get('accepts_insurance', True),
@@ -391,7 +393,7 @@ def update_doctor_profile():
         # Handle file uploads
         if 'profile_picture' in files and files['profile_picture'].filename:
             try:
-                doctor.profile_picture_url = upload_file(files['profile_picture'], 'doctor_profiles')
+                doctor.profile_picture = upload_file(files['profile_picture'], 'doctor_profiles')
             except Exception as e:
                 return jsonify({
                     'success': False,
