@@ -58,13 +58,15 @@ def get_language():
 
 @doctor_auth_bp.route('/register', methods=['POST'])
 def register_doctor():
-    """Register a new doctor with location support"""
+    """Register a new doctor with email verification"""
     try:
         # Get form data
         data = request.get_json() if request.is_json else request.form.to_dict()
         files = request.files
         language = get_language()
-        password = data['password']
+        email = data['email'].lower().strip()
+        password = data['password']    
+        
         # Validate required fields
         required_fields = [
             'first_name', 'last_name', 'email', 'phone', 'password',
@@ -83,13 +85,19 @@ def register_doctor():
             }), 400
         
         # Check if email already exists
-        if Doctor.query.filter_by(email=data['email']).first():
+        from src.models.user import User
+        from src.models.pharmacy import Pharmacy
+        
+        existing_user = User.query.filter_by(email=email).first()
+        existing_pharmacy = Pharmacy.query.filter_by(email=email).first()
+        existing_doctor = Doctor.query.filter_by(email=email).first()
+        
+        if existing_user or existing_pharmacy or existing_doctor:
             return jsonify({
                 'success': False,
-                'message': 'البريد الإلكتروني مستخدم بالفعل',
-                'message_en': 'Email already registered',
-                'errors': {'email': 'البريد الإلكتروني مستخدم بالفعل' if language == 'ar' else 'Email already exists'}
-            }), 400
+                'message': 'Email already registered',
+                'message_ar': 'البريد الإلكتروني مسجل بالفعل'
+            }), 409
         
         # Check if license number already exists
         if Doctor.query.filter_by(medical_license_number=data['medical_license_number']).first():
@@ -176,10 +184,10 @@ def register_doctor():
         doctor = Doctor(
             # Personal Information
             first_name=data['first_name'],
-            first_name_ar=data.get('first_name_ar'),
+            first_name_ar=data.get('first_name_ar', data['first_name']),
             last_name=data['last_name'],
-            last_name_ar=data.get('last_name_ar'),
-            email=data['email'].lower(),
+            last_name_ar=data.get('last_name_ar', data['last_name']),
+            email=email,
             phone=data['phone'],
             password_hash=generate_password_hash(password),
             date_of_birth=date_of_birth,
@@ -191,6 +199,7 @@ def register_doctor():
             license_expiry_date=license_expiry_date,
             primary_specialty=data['specialty'],            # match model field
             subspecialties=data.get('subspecialty'),
+            primary_specialty_ar=data.get('specialty_ar', data['specialty']),
             years_of_experience=int(data['years_of_experience']),
             medical_school=data['medical_school'],
             medical_school_ar=data.get('medical_school_ar'),
@@ -198,9 +207,10 @@ def register_doctor():
             
             # Practice Information
             clinic_hospital_name=data['clinic_hospital_name'],
-            clinic_hospital_name_ar=data.get('clinic_hospital_name_ar'),
+            clinic_hospital_name_ar=data.get('clinic_hospital_name_ar', data['clinic_hospital_name']),
             address=data['clinic_address'],
             clinic_phone=data.get('clinic_phone'),
+            address_ar=data.get('clinic_address_ar', data['clinic_address']),
             consultation_fee=float(data['consultation_fee']),
             bio=data.get('bio'),
             bio_ar=data.get('bio_ar'),
@@ -218,10 +228,17 @@ def register_doctor():
             offers_telemedicine=data.get('offers_telemedicine', False),
             languages_spoken=languages_spoken,
             working_hours=data.get('working_hours')
+
+            # ✅ EMAIL VERIFICATION SETUP
+            preferred_language=data.get('preferred_language', 'ar'),
+            is_verified=False,
+            email_verified=False,
+            verification_status='pending'
         )
 
 
-        
+        # ✅ GENERATE VERIFICATION TOKEN
+        verification_token = doctor.generate_verification_token()
         
         # Save to database
         db.session.add(doctor)
@@ -230,25 +247,153 @@ def register_doctor():
         # Generate authentication token
         token = doctor.generate_token()
         
+        # ✅ SEND VERIFICATION EMAIL
+        try:
+            from src.services.email_service import EmailService
+            EmailService.send_doctor_verification_email(
+                doctor.email, 
+                verification_token, 
+                doctor.preferred_language
+            )
+            current_app.logger.info(f"Doctor verification email sent to {doctor.email}")
+        except Exception as e:
+            current_app.logger.error(f"Failed to send verification email: {str(e)}")
+
         return jsonify({
             'success': True,
-            'message': 'تم التسجيل بنجاح! سيتم مراجعة طلبك خلال 24 ساعة.',
-            'message_en': 'Registration successful! Your application will be reviewed within 24 hours.',
+            'message': 'Doctor registration successful. Please check your email to verify your account and wait for approval.',
+            'message_ar': 'تم تسجيل الطبيب بنجاح. يرجى التحقق من بريدك الإلكتروني وانتظار الموافقة.',
             'data': {
-                'doctor': doctor.to_dict(include_sensitive=True, language=language),
-                'token': token
+                'doctor_id': doctor.id,
+                'doctor_number': doctor.doctor_number,
+                'email': doctor.email,
+                'user_type': 'doctor'
             }
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Doctor registration error: {str(e)}")
         return jsonify({
             'success': False,
-            'message': 'خطأ في التسجيل',
-            'message_en': 'Registration error'
+            'message': 'Registration failed',
+            'message_ar': 'فشل في التسجيل',
+            'error': str(e)
+        }), 500
+@doctor_auth_bp.route('/verify-email', methods=['POST'])
+def verify_doctor_email():
+    """Verify doctor email address"""
+    try:
+        data = request.get_json()
+        token = data.get('token')
+        
+        if not token:
+            return jsonify({
+                'success': False,
+                'message': 'Verification token is required',
+                'message_ar': 'رمز التحقق مطلوب'
+            }), 400
+        
+        doctor = Doctor.query.filter_by(email_verification_token=token).first()
+        if not doctor:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid verification token',
+                'message_ar': 'رمز التحقق غير صحيح'
+            }), 400
+        
+        if not doctor.is_verification_token_valid(token):
+            return jsonify({
+                'success': False,
+                'message': 'Verification token has expired',
+                'message_ar': 'انتهت صلاحية رمز التحقق'
+            }), 400
+        
+        # Verify email
+        doctor.verify_email()
+        db.session.commit()
+        
+        current_app.logger.info(f"Doctor email verified: {doctor.email}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Email verified successfully. Your account is now pending approval.',
+            'message_ar': 'تم تفعيل البريد الإلكتروني بنجاح. حسابك الآن في انتظار الموافقة.'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Email verification error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Email verification failed',
+            'message_ar': 'فشل في تفعيل البريد الإلكتروني'
         }), 500
 
+@doctor_auth_bp.route('/resend-verification', methods=['POST'])
+def resend_doctor_verification():
+    """Resend verification email to doctor"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+        
+        if not email:
+            return jsonify({
+                'success': False,
+                'message': 'Email is required',
+                'message_ar': 'البريد الإلكتروني مطلوب'
+            }), 400
+        
+        doctor = Doctor.query.filter_by(email=email).first()
+        if not doctor:
+            return jsonify({
+                'success': False,
+                'message': 'Doctor not found',
+                'message_ar': 'الطبيب غير موجود'
+            }), 404
+        
+        if doctor.is_verified and doctor.email_verified:
+            return jsonify({
+                'success': False,
+                'message': 'Email is already verified',
+                'message_ar': 'البريد الإلكتروني مفعل بالفعل'
+            }), 400
+        
+        # Generate new verification token
+        verification_token = doctor.generate_verification_token()
+        db.session.commit()
+        
+        # Send verification email
+        try:
+            from src.services.email_service import EmailService
+            EmailService.send_doctor_verification_email(
+                doctor.email, 
+                verification_token, 
+                doctor.preferred_language
+            )
+            current_app.logger.info(f"Verification email resent to {doctor.email}")
+        except Exception as e:
+            current_app.logger.error(f"Failed to resend verification email: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': 'Failed to send verification email',
+                'message_ar': 'فشل في إرسال بريد التفعيل'
+            }), 500
+        
+        return jsonify({
+            'success': True,
+            'message': 'Verification email sent successfully',
+            'message_ar': 'تم إرسال بريد التفعيل بنجاح'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Resend verification error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to resend verification email',
+            'message_ar': 'فشل في إعادة إرسال بريد التفعيل'
+        }), 500
+
+        
 @doctor_auth_bp.route('/login', methods=['POST'])
 def login_doctor():
     """Doctor login"""

@@ -321,6 +321,57 @@ def login():
                 'pharmacy': pharmacy.to_dict(),
                 'user_type': 'pharmacy'
             }), 200
+
+        # Add this to your login function in auth.py, after checking pharmacy
+        # Try to find doctor
+        doctor = Doctor.query.filter_by(email=email).first()
+        if doctor and check_password_hash(doctor.password_hash, password):
+            # Check email verification
+            if not doctor.is_verified and not doctor.email_verified:
+                return jsonify({
+                    'success': False,
+                    'message': 'Please verify your email before logging in',
+                    'message_ar': 'يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول'
+                }), 403
+            
+            if doctor.verification_status != 'verified':
+                status_messages = {
+                    'pending': 'Account is pending approval',
+                    'rejected': 'Account application was rejected'
+                }
+                status_messages_ar = {
+                    'pending': 'الحساب في انتظار الموافقة',
+                    'rejected': 'تم رفض طلب الحساب'
+                }
+                
+                return jsonify({
+                    'success': False,
+                    'message': status_messages.get(doctor.verification_status, 'Account is not verified'),
+                    'message_ar': status_messages_ar.get(doctor.verification_status, 'الحساب غير مفعل')
+                }), 403
+            
+            # Update last login
+            doctor.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            # Create tokens
+            access_token = create_access_token(
+                identity={'id': doctor.id, 'type': 'doctor'},
+                expires_delta=timedelta(hours=24)
+            )
+            refresh_token = create_refresh_token(
+                identity={'id': doctor.id, 'type': 'doctor'}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'message_ar': 'تم تسجيل الدخول بنجاح',
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'doctor': doctor.to_dict(),
+                'user_type': 'doctor'
+            }), 200    
         
         # Invalid credentials
         return jsonify({

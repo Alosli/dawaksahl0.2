@@ -152,11 +152,22 @@ class Doctor(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     is_available = db.Column(db.Boolean, default=True)
     is_accepting_new_patients = db.Column(db.Boolean, default=True)
+    # ================================
+    # EMAIL VERIFICATION & SECURITY
+    # ================================
+    # Verification Tokens
+    email_verification_token = db.Column(db.String(255))
+    email_verification_expires = db.Column(db.DateTime)
+    password_reset_token = db.Column(db.String(255))
+    password_reset_expires = db.Column(db.DateTime)
     
     # Account Status
     email_verified = db.Column(db.Boolean, default=False)
     phone_verified = db.Column(db.Boolean, default=False)
     profile_completed = db.Column(db.Boolean, default=False)
+    email_verified_at = db.Column(db.DateTime)
+    # Preferences
+    preferred_language = db.Column(db.String(5), default='ar', nullable=False)
     
     # ================================
     # METADATA
@@ -348,6 +359,42 @@ class Doctor(db.Model):
             }
         }
 
+
+    def generate_verification_token(self):
+        """Generate email verification token"""
+        import secrets
+        self.email_verification_token = secrets.token_urlsafe(32)
+        self.email_verification_expires = datetime.utcnow() + timedelta(hours=24)
+        return self.email_verification_token
+
+    def generate_password_reset_token(self):
+        """Generate password reset token"""
+        import secrets
+        self.password_reset_token = secrets.token_urlsafe(32)
+        self.password_reset_expires = datetime.utcnow() + timedelta(hours=2)
+        return self.password_reset_token
+
+    def verify_email(self):
+        """Mark email as verified"""
+        self.is_verified = True
+        self.email_verified = True
+        self.email_verified_at = datetime.utcnow()
+        self.email_verification_token = None
+        self.email_verification_expires = None
+
+    def is_verification_token_valid(self, token):
+        """Check if verification token is valid and not expired"""
+        return (self.email_verification_token == token and 
+                self.email_verification_expires and 
+                datetime.utcnow() < self.email_verification_expires)
+
+    def is_password_reset_token_valid(self, token):
+        """Check if password reset token is valid and not expired"""
+        return (self.password_reset_token == token and 
+                self.password_reset_expires and 
+                datetime.utcnow() < self.password_reset_expires)
+
+
     def to_dict(self, language= 'ar', include_sensitive=False):
         """Convert doctor to dictionary"""
         data = {
@@ -385,6 +432,9 @@ class Doctor(db.Model):
             }
         }
         return data
+
+
+
 
 # Auto-generate doctor_number before insert
 @event.listens_for(Doctor, 'before_insert')
