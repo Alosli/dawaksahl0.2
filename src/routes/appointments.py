@@ -28,7 +28,8 @@ appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/v1/appoin
 # ================================
 
 @appointments_bp.route('', methods=['POST'])
-
+@jwt_required()
+@user_required
 def book_appointment():
     """
     📅 BOOK NEW APPOINTMENT
