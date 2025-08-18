@@ -744,10 +744,9 @@ def get_public_doctors():
         
         if city:
             # Better city search in full address
-            query = query.filter(Doctor.address.ilike(f'%{city}%'))
+            query = query.filter(Doctor.address.city)
         
-        if rating_min:
-            query = query.filter(Doctor.rating >= rating_min)
+        
         
         # Paginate results
         doctors = query.paginate(
