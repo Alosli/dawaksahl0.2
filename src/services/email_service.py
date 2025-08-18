@@ -238,7 +238,7 @@ class EmailService:
         
         if language == 'ar':
             subject = 'تفعيل حساب الطبيب - دواك سهل'
-            html_body = f"""
+            html_content = f"""
             <!DOCTYPE html>
             <html dir="rtl" lang="ar">
             <head>
@@ -303,7 +303,7 @@ class EmailService:
             """
         else:
             subject = 'Doctor Account Verification - DawakSahl'
-            html_body = f"""
+            html_content = f"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -377,7 +377,7 @@ class EmailService:
         
         if language == 'ar':
             subject = 'تم الموافقة على حساب الطبيب - دواك سهل'
-            html_body = f"""
+            html_content = f"""
             <!DOCTYPE html>
             <html dir="rtl" lang="ar">
             <head>
@@ -429,7 +429,7 @@ class EmailService:
             """
         else:
             subject = 'Doctor Account Approved - DawakSahl'
-            html_body = f"""
+            html_content = f"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
