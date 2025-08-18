@@ -227,7 +227,7 @@ def register_doctor():
             accepts_insurance=data.get('accepts_insurance', True),
             offers_telemedicine=data.get('offers_telemedicine', False),
             languages_spoken=languages_spoken,
-            working_hours=data.get('working_hours')
+            working_hours=data.get('working_hours'),
 
             # ✅ EMAIL VERIFICATION SETUP
             preferred_language=data.get('preferred_language', 'ar'),
@@ -393,7 +393,7 @@ def resend_doctor_verification():
             'message_ar': 'فشل في إعادة إرسال بريد التفعيل'
         }), 500
 
-        
+
 @doctor_auth_bp.route('/login', methods=['POST'])
 def login_doctor():
     """Doctor login"""
