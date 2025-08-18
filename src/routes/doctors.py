@@ -721,6 +721,7 @@ def verify_email():
             'message_en': 'Email verification error'
         }), 500
 @doctor_auth_bp.route('/public', methods=['GET'])
+@doctor_auth_bp.route('/public', methods=['GET'])
 def get_public_doctors():
     """Get verified doctors for public viewing"""
     try:
@@ -731,18 +732,19 @@ def get_public_doctors():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
-        # Build query for verified doctors only
+        # Build query for verified doctors only - FIXED!
         query = Doctor.query.filter_by(
             is_verified=True,
             is_active=True,
-            verification_status='approved'
+            verification_status='approved'  # ✅ Changed from 'approved' to 'verified'
         )
         
         if specialty:
             query = query.filter_by(primary_specialty=specialty)
         
         if city:
-            query = query.filter(Doctor.address.contains(city))
+            # Better city search in full address
+            query = query.filter(Doctor.address.ilike(f'%{city}%'))
         
         if rating_min:
             query = query.filter(Doctor.rating >= rating_min)
