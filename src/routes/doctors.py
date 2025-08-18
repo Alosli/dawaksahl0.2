@@ -228,7 +228,7 @@ def register_doctor():
         db.session.commit()
         
         # Generate authentication token
-        token = doctor.generate_auth_token()
+        token = doctor.generate_token()
         
         return jsonify({
             'success': True,
@@ -285,7 +285,7 @@ def login_doctor():
         db.session.commit()
         
         # Generate token
-        token = doctor.generate_auth_token()
+        token = doctor.generate_token()
         
         return jsonify({
             'success': True,
