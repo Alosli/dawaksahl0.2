@@ -348,7 +348,7 @@ class Doctor(db.Model):
             }
         }
 
-    def to_dict(self, include_sensitive=False):
+    def to_dict(self, language= 'ar', include_sensitive=False):
         """Convert doctor to dictionary"""
         data = {
             'id': self.id,
