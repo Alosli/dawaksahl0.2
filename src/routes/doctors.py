@@ -399,56 +399,60 @@ def login_doctor():
     """Doctor login"""
     try:
         data = request.get_json()
-        language = get_language()
         
-        if not data or not data.get('email') or not data.get('password'):
+        email = data.get('email', '').lower().strip()
+        password = data.get('password', '')
+        
+        if not email or not password:
             return jsonify({
                 'success': False,
-                'message': 'البريد الإلكتروني وكلمة المرور مطلوبان',
-                'message_en': 'Email and password required'
+                'message': 'Email and password are required',
+                'message_ar': 'البريد الإلكتروني وكلمة المرور مطلوبان'
             }), 400
         
-        # Find doctor by email
-        doctor = Doctor.query.filter_by(email=data['email'].lower()).first()
-        
-        if not doctor or not doctor.check_password(data['password']):
+        # Try to find user first
+        doctor = Doctor.query.filter_by(email=email).first()
+        if doctor and check_password_hash(user.password_hash, password):
+            # Check email verification using the correct field names
+            if not doctor.is_verified and not user.email_verified:
+                return jsonify({
+                    'success': False,
+                    'message': 'Please verify your email before logging in',
+                    'message_ar': 'يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول'
+                }), 403
+            
+            if not doctor.is_active:
+                return jsonify({
+                    'success': False,
+                    'message': 'Account is deactivated',
+                    'message_ar': 'الحساب معطل'
+                }), 403
+            
+            # Update last login
+            doctor.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            # Create tokens
+            access_token = doctor.generate_token()(
+                identity={'id': doctor.id, 'type': 'doctor'},
+                expires_delta=timedelta(hours=24)
+            )
+            refresh_token = create_refresh_token(
+                identity={'id': doctor.id, 'type': 'doctor'}
+            )
+            
             return jsonify({
-                'success': False,
-                'message': 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-                'message_en': 'Invalid email or password'
-            }), 401
+                'success': True,
+                'message': 'Login successful',
+                'message_ar': 'تم تسجيل الدخول بنجاح',
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'user': doctor.to_dict(),
+                'user_type': 'doctor'
+            }), 200    
+    
         
-        if not doctor.is_active:
-            return jsonify({
-                'success': False,
-                'message': 'الحساب معطل',
-                'message_en': 'Account is deactivated'
-            }), 401
-        
-        # Update last login
-        doctor.last_login = datetime.utcnow()
-        db.session.commit()
-        
-        # Generate token
-        token = doctor.generate_token()
-        
-        return jsonify({
-            'success': True,
-            'message': 'تم تسجيل الدخول بنجاح',
-            'message_en': 'Login successful',
-            'data': {
-                'doctor': doctor.to_dict(include_sensitive=True, language=language),
-                'token': token
-            }
-        }), 200
-        
-    except Exception as e:
-        current_app.logger.error(f"Doctor login error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'خطأ في تسجيل الدخول',
-            'message_en': 'Login error'
-        }), 500
+  
 
 @doctor_auth_bp.route('/profile', methods=['GET'])
 
