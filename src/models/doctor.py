@@ -11,7 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import os
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Index, event
+from sqlalchemy import Index, event, text
 
 # Import your existing db instance
 from src.models import db
@@ -391,11 +391,11 @@ class Doctor(db.Model):
 def generate_doctor_number_before_insert(mapper, connection, target):
     """Auto-generate doctor number before inserting new doctor"""
     if not target.doctor_number:
-        # Use raw SQL to avoid session conflicts
+        # ✅ Use text() wrapper for raw SQL
         result = connection.execute(
-            "SELECT doctor_number FROM doctors WHERE doctor_number LIKE 'DR%' ORDER BY doctor_number DESC LIMIT 1"
+            text("SELECT doctor_number FROM doctors WHERE doctor_number LIKE 'DR%' ORDER BY doctor_number DESC LIMIT 1")
         ).fetchone()
-            
+        
         if result:
             try:
                 last_number = int(result[0][2:])  # Remove 'DR' prefix
@@ -404,7 +404,7 @@ def generate_doctor_number_before_insert(mapper, connection, target):
                 next_number = 1
         else:
             next_number = 1
-            
+        
         target.doctor_number = f"DR{next_number:05d}"
 
 class TimeSlot(db.Model):
