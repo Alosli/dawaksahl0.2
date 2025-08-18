@@ -720,7 +720,264 @@ def verify_email():
             'message': 'خطأ في التحقق من البريد الإلكتروني',
             'message_en': 'Email verification error'
         }), 500
+@doctor_auth_bp.route('/public', methods=['GET'])
+def get_public_doctors():
+    """Get verified doctors for public viewing"""
+    try:
+        # Query parameters
+        specialty = request.args.get('specialty')
+        city = request.args.get('city')
+        rating_min = request.args.get('rating_min', type=float)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        # Build query for verified doctors only
+        query = Doctor.query.filter_by(
+            is_verified=True,
+            is_active=True,
+            verification_status='approved'
+        )
+        
+        if specialty:
+            query = query.filter_by(primary_specialty=specialty)
+        
+        if city:
+            query = query.filter(Doctor.address.contains(city))
+        
+        if rating_min:
+            query = query.filter(Doctor.rating >= rating_min)
+        
+        # Paginate results
+        doctors = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        # Return public doctor data (no sensitive info)
+        result = []
+        for doctor in doctors.items:
+            doctor_data = {
+                'id': doctor.id,
+                'first_name': doctor.first_name,
+                'last_name': doctor.last_name,
+                'first_name_ar': doctor.first_name_ar,
+                'last_name_ar': doctor.last_name_ar,
+                'primary_specialty': doctor.primary_specialty,
+                'primary_specialty_ar': doctor.primary_specialty_ar,
+                'years_of_experience': doctor.years_of_experience,
+                'consultation_fee': doctor.consultation_fee,
+                'clinic_hospital_name': doctor.clinic_hospital_name,
+                'clinic_hospital_name_ar': doctor.clinic_hospital_name_ar,
+                'address': doctor.address,
+                'address_ar': doctor.address_ar,
+                'profile_picture': doctor.profile_picture,
+                'bio': doctor.bio,
+                'bio_ar': doctor.bio_ar,
+                'rating': doctor.rating,
+                'total_reviews': doctor.total_reviews,
+                'accepts_insurance': doctor.accepts_insurance,
+                'offers_telemedicine': doctor.offers_telemedicine,
+                'languages_spoken': doctor.languages_spoken
+            }
+            result.append(doctor_data)
+        
+        return jsonify({
+            'success': True,
+            'data': result,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': doctors.total,
+                'pages': doctors.pages
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting public doctors: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to retrieve doctors'
+        }), 500
 
+@doctor_auth_bp.route('/public/<int:doctor_id>', methods=['GET'])
+def get_public_doctor_profile(doctor_id):
+    """Get public doctor profile"""
+    try:
+        doctor = Doctor.query.filter_by(
+            id=doctor_id,
+            is_verified=True,
+            is_active=True,
+            verification_status='approved'
+        ).first()
+        
+        if not doctor:
+            return jsonify({
+                'success': False,
+                'message': 'Doctor not found'
+            }), 404
+        
+        # Return detailed public profile
+        doctor_data = {
+            'id': doctor.id,
+            'first_name': doctor.first_name,
+            'last_name': doctor.last_name,
+            'first_name_ar': doctor.first_name_ar,
+            'last_name_ar': doctor.last_name_ar,
+            'primary_specialty': doctor.primary_specialty,
+            'primary_specialty_ar': doctor.primary_specialty_ar,
+            'subspecialties': doctor.subspecialties,
+            'years_of_experience': doctor.years_of_experience,
+            'consultation_fee': doctor.consultation_fee,
+            'clinic_hospital_name': doctor.clinic_hospital_name,
+            'clinic_hospital_name_ar': doctor.clinic_hospital_name_ar,
+            'address': doctor.address,
+            'address_ar': doctor.address_ar,
+            'clinic_phone': doctor.clinic_phone,
+            'profile_picture': doctor.profile_picture,
+            'bio': doctor.bio,
+            'bio_ar': doctor.bio_ar,
+            'medical_school': doctor.medical_school,
+            'medical_school_ar': doctor.medical_school_ar,
+            'graduation_year': doctor.graduation_year,
+            'rating': doctor.rating,
+            'total_reviews': doctor.total_reviews,
+            'accepts_insurance': doctor.accepts_insurance,
+            'offers_telemedicine': doctor.offers_telemedicine,
+            'languages_spoken': doctor.languages_spoken,
+            'working_hours': doctor.working_hours
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': doctor_data
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting doctor profile: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to retrieve doctor profile'
+        }), 500
+
+@doctor_auth_bp.route('/<int:doctor_id>/time-slots', methods=['GET'])
+def get_doctor_time_slots(doctor_id):
+    """Get available time slots for a doctor"""
+    try:
+        # Get query parameters
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        consultation_mode = request.args.get('consultation_mode')
+        
+        # Verify doctor exists and is active
+        doctor = Doctor.query.filter_by(
+            id=doctor_id,
+            is_verified=True,
+            is_active=True,
+            verification_status='approved'
+        ).first()
+        
+        if not doctor:
+            return jsonify({
+                'success': False,
+                'message': 'Doctor not found'
+            }), 404
+        
+        # Build time slot query
+        query = TimeSlot.query.filter_by(
+            doctor_id=doctor_id,
+            is_available=True
+        )
+        
+        if date_from:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            query = query.filter(TimeSlot.date >= date_from_obj)
+        
+        if date_to:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            query = query.filter(TimeSlot.date <= date_to_obj)
+        
+        if consultation_mode:
+            query = query.filter_by(consultation_mode=consultation_mode)
+        
+        # Get available time slots
+        time_slots = query.order_by(TimeSlot.date, TimeSlot.start_time).all()
+        
+        result = []
+        for slot in time_slots:
+            slot_data = {
+                'id': slot.id,
+                'doctor_id': slot.doctor_id,
+                'date': slot.date.isoformat(),
+                'start_time': slot.start_time.strftime('%H:%M'),
+                'end_time': slot.end_time.strftime('%H:%M'),
+                'consultation_mode': slot.consultation_mode,
+                'consultation_fee': slot.get_consultation_fee(),
+                'is_available': slot.is_available,
+                'max_patients': slot.max_patients,
+                'current_bookings': slot.current_bookings
+            }
+            result.append(slot_data)
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting doctor time slots: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to retrieve time slots'
+        }), 500
+
+@doctor_auth_bp.route('/<int:doctor_id>/available-slots', methods=['GET'])
+def get_available_slots(doctor_id):
+    """Generate available slots dynamically from working hours"""
+    
+    # Get doctor's working hours
+    doctor = Doctor.query.get(doctor_id)
+    working_hours = doctor.working_hours  # JSON: {"monday": {"start": "09:00", "end": "17:00"}}
+    
+    # Get requested date range
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    
+    available_slots = []
+    
+    for single_date in date_range(date_from, date_to):
+        day_name = single_date.strftime('%A').lower()
+        
+        if day_name in working_hours:
+            day_hours = working_hours[day_name]
+            
+            # Generate 30-minute slots
+            current_time = datetime.strptime(day_hours['start'], '%H:%M').time()
+            end_time = datetime.strptime(day_hours['end'], '%H:%M').time()
+            
+            while current_time < end_time:
+                slot_datetime = datetime.combine(single_date, current_time)
+                
+                # Check if slot is already booked
+                existing_appointment = Appointment.query.filter_by(
+                    doctor_id=doctor_id,
+                    appointment_date=single_date,
+                    appointment_time=current_time
+                ).first()
+                
+                if not existing_appointment:
+                    available_slots.append({
+                        'date': single_date.isoformat(),
+                        'time': current_time.strftime('%H:%M'),
+                        'datetime': slot_datetime.isoformat(),
+                        'available': True
+                    })
+                
+                # Add 30 minutes
+                current_time = (datetime.combine(single_date, current_time) + timedelta(minutes=30)).time()
+    
+    return jsonify({
+        'success': True,
+        'data': available_slots
+    })        
 # Error handlers
 @doctor_auth_bp.errorhandler(404)
 def not_found(error):
