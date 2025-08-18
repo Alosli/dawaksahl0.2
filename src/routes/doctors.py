@@ -220,11 +220,12 @@ def register_doctor():
             working_hours=data.get('working_hours')
         )
 
-        # Save to database
-        new_doctor = Doctor(**doctor_data)
-        db.session.add(new_doctor)
-        db.session.commit()
+
         
+        
+        # Save to database
+        db.session.add(doctor)
+        db.session.commit()
         
         # Generate authentication token
         token = doctor.generate_auth_token()
