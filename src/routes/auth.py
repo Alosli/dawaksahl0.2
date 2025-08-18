@@ -10,6 +10,7 @@ import json
 from src.models.user import User
 from src.models import db
 from src.models.pharmacy import Pharmacy
+from src.models.doctor import Doctor
 from src.services.email_service import EmailService
 from src.services.auth_service import AuthService
 
