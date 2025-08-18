@@ -774,7 +774,6 @@ def get_public_doctors():
                 'profile_picture': doctor.profile_picture,
                 'bio': doctor.bio,
                 'bio_ar': doctor.bio_ar,
-                'rating': doctor.rating,
                 'total_reviews': doctor.total_reviews,
                 'accepts_insurance': doctor.accepts_insurance,
                 'offers_telemedicine': doctor.offers_telemedicine,
