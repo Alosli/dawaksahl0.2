@@ -335,7 +335,7 @@ def login():
                     'message_ar': 'يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول'
                 }), 403
             
-            if doctor.verification_status != 'verified':
+            if doctor.verification_status != 'approved':
                 status_messages = {
                     'pending': 'Account is pending approval',
                     'rejected': 'Account application was rejected'
