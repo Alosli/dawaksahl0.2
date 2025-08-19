@@ -207,11 +207,13 @@ def book_appointment(**kwargs):
 @appointments_bp.route('', methods=['GET'])
 @jwt_required()
 @user_required
-def get_user_appointments():
+def get_user_appointments(**kwargs):
     """
     📋 GET USER'S APPOINTMENTS
     Retrieve all appointments for the current user
     """
+    current_user = kwargs.get('current_user')
+
     try:
         current_user_id = get_jwt_identity()
         
