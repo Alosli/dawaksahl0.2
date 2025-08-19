@@ -30,11 +30,12 @@ appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/v1/appoin
 @appointments_bp.route('', methods=['POST'])
 @jwt_required()
 @user_required
-def book_appointment():
+def book_appointment(**kwargs):
     """
     📅 BOOK NEW APPOINTMENT
     Patient books an appointment with a doctor's time slot
     """
+    current_user = kwargs.get('current_user')
     try:
         current_user_id = get_jwt_identity()
         data = request.get_json()
