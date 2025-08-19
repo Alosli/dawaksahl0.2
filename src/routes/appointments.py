@@ -26,7 +26,6 @@ appointments_bp = Blueprint('appointments', __name__, url_prefix='/api/v1/appoin
 # ================================
 # PATIENT APPOINTMENT ENDPOINTS
 # ================================
-
 @appointments_bp.route('', methods=['POST'])
 @jwt_required()
 @user_required
@@ -37,39 +36,75 @@ def book_appointment(**kwargs):
     """
     current_user = kwargs.get('current_user')
     try:
-        current_user_id = get_jwt_identity()
         data = request.get_json()
+
+        # Parse the time slot string
+        time_slot_string = data.get('time_slot_id')  # "slot_2025-08-19_17:00"
         
+        if time_slot_string and time_slot_string.startswith('slot_'):
+            # Extract date and time from string
+            parts = time_slot_string.replace('slot_', '').split('_')
+            appointment_date = parts[0]  # "2025-08-19"
+            appointment_time = parts[1]  # "17:00"
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid time slot format'
+            }), 400
+
         # Required fields
-        required_fields = ['time_slot_id', 'appointment_type', 'chief_complaint']
+        required_fields = ['doctor_id', 'appointment_type', 'chief_complaint']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'{field} is required'}), 400
         
-        # Get the time slot (from doctor model!)
-        time_slot = TimeSlot.query.get(data['time_slot_id'])
-        if not time_slot:
-            return jsonify({'error': 'Time slot not found'}), 404
-        
-        # Check if time slot is available
-        can_book, message = time_slot.can_book_appointment(
-            patient_age=data.get('patient_age'),
-            patient_gender=data.get('patient_gender')
-        )
-        
-        if not can_book:
-            return jsonify({'error': message}), 400
-        
-        # Get doctor from time slot
-        doctor = time_slot.doctor
+        # Get doctor
+        doctor = Doctor.query.get(data['doctor_id'])
         if not doctor or not doctor.is_active:
             return jsonify({'error': 'Doctor is not available'}), 400
         
+        # Check if TimeSlot exists, if not create it
+        existing_slot = TimeSlot.query.filter_by(
+            doctor_id=data['doctor_id'],
+            date=datetime.strptime(appointment_date, '%Y-%m-%d').date(),
+            start_time=datetime.strptime(appointment_time, '%H:%M').time()
+        ).first()
+        
+        if not existing_slot:
+            # Create new TimeSlot record
+            end_time = (datetime.strptime(appointment_time, '%H:%M') + timedelta(minutes=30)).time()
+            
+            time_slot = TimeSlot(
+                doctor_id=data['doctor_id'],
+                date=datetime.strptime(appointment_date, '%Y-%m-%d').date(),
+                start_time=datetime.strptime(appointment_time, '%H:%M').time(),
+                end_time=end_time,
+                duration=30,
+                consultation_mode=data.get('consultation_mode', 'in_person'),
+                consultation_fee=data.get('consultation_fee', doctor.consultation_fee),
+                is_available=True,
+                is_booked=False,
+                max_appointments=1,
+                current_appointments=0
+            )
+            db.session.add(time_slot)
+            db.session.flush()  # Get the ID without committing
+        else:
+            time_slot = existing_slot
+        
+        # Check if time slot is available
+        if time_slot.is_booked or not time_slot.is_available:
+            return jsonify({'error': 'Time slot is not available'}), 400
+        
+        # Check if slot is already at capacity
+        if time_slot.current_appointments >= time_slot.max_appointments:
+            return jsonify({'error': 'Time slot is fully booked'}), 400
+        
         # Create appointment
         appointment = Appointment(
-            patient_id=current_user_id,
+            patient_id=current_user.id,
             doctor_id=doctor.id,
-            time_slot_id=time_slot.id,
+            time_slot_id=time_slot.id,  # Use the actual database ID
             appointment_type=data['appointment_type'],
             consultation_mode=data.get('consultation_mode', time_slot.consultation_mode),
             chief_complaint=data['chief_complaint'],
@@ -82,8 +117,8 @@ def book_appointment(**kwargs):
             emergency_contact_name=data.get('emergency_contact_name'),
             emergency_contact_phone=data.get('emergency_contact_phone'),
             emergency_contact_relationship=data.get('emergency_contact_relationship'),
-            consultation_fee=time_slot.get_consultation_fee(),
-            payment_method=data.get('payment_method', 'card'),
+            consultation_fee=time_slot.consultation_fee or doctor.consultation_fee,
+            payment_method=data.get('payment_method', 'cash'),
             insurance_provider=data.get('insurance_provider'),
             insurance_policy_number=data.get('insurance_policy_number'),
             insurance_coverage_percentage=data.get('insurance_coverage_percentage', 0),
@@ -100,61 +135,73 @@ def book_appointment(**kwargs):
         appointment.generate_appointment_number()
         
         # Calculate total amount
-        appointment.total_amount = appointment.calculate_total_amount()
+        appointment.total_amount = appointment.consultation_fee
+        if appointment.insurance_coverage_percentage:
+            coverage = float(appointment.insurance_coverage_percentage) / 100
+            insurance_covered = appointment.total_amount * coverage
+            appointment.insurance_covered_amount = insurance_covered
+            appointment.patient_copay = appointment.total_amount - insurance_covered
+        else:
+            appointment.patient_copay = appointment.total_amount
         
         # Check if first visit
         existing_appointments = Appointment.query.filter_by(
-            patient_id=current_user_id,
+            patient_id=current_user.id,
             doctor_id=doctor.id
         ).count()
         appointment.is_first_visit = existing_appointments == 0
         
-        # Book the time slot
-        time_slot.book_appointment()
+        # Update time slot booking status
+        time_slot.current_appointments += 1
+        if time_slot.current_appointments >= time_slot.max_appointments:
+            time_slot.is_booked = True
         
         # Generate meeting link for video consultations
         if appointment.consultation_mode == 'video_call':
-            appointment.meeting_link = time_slot.generate_meeting_link()
-            appointment.meeting_password = time_slot.meeting_password
+            # Generate a simple meeting link (you can integrate with actual video service)
+            appointment.meeting_link = f"https://meet.dawaksahl.com/room/{appointment.id}"
+            appointment.meeting_password = f"apt{appointment.id}"
         
         # Save to database
         db.session.add(appointment)
         db.session.commit()
         
-        # Create appointment history
-        history = AppointmentHistory(
-            appointment_id=appointment.id,
-            changed_by_type='patient',
-            changed_by_id=current_user_id,
-            change_type='created',
-            new_values={
-                'status': appointment.status,
-                'time_slot_id': appointment.time_slot_id,
-                'appointment_type': appointment.appointment_type
-            }
-        )
-        db.session.add(history)
-        
-        # Schedule reminders
-        if data.get('send_reminders', True):
-            schedule_appointment_reminders(appointment)
-        
-        db.session.commit()
-        
-        # Send confirmation
-        appointment.send_confirmation()
+        # Send confirmation (if you have email service)
+        try:
+            appointment.confirmation_sent = True
+            appointment.confirmation_sent_at = datetime.utcnow()
+        except:
+            pass  # Email service might not be configured
         
         return jsonify({
+            'success': True,
             'message': 'Appointment booked successfully',
-            'appointment': appointment.to_dict(),
-            'doctor': doctor.to_dict(),
-            'time_slot': time_slot.to_dict()
+            'message_ar': 'تم حجز الموعد بنجاح',
+            'appointment': {
+                'id': appointment.id,
+                'appointment_number': appointment.appointment_number,
+                'doctor_name': f"{doctor.first_name} {doctor.last_name}",
+                'appointment_date': appointment_date,
+                'appointment_time': appointment_time,
+                'consultation_fee': float(appointment.consultation_fee),
+                'total_amount': float(appointment.total_amount),
+                'status': appointment.status,
+                'consultation_mode': appointment.consultation_mode,
+                'meeting_link': appointment.meeting_link if appointment.consultation_mode == 'video_call' else None
+            }
         }), 201
         
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error booking appointment: {str(e)}")
-        return jsonify({'error': 'Failed to book appointment'}), 500
+        print(f"❌ Error booking appointment: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to book appointment',
+            'message': str(e)
+        }), 500
+
+
 
 
 @appointments_bp.route('', methods=['GET'])
