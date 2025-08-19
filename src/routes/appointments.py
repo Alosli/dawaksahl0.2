@@ -796,8 +796,15 @@ def get_appointment_stats():
     Get appointment statistics for current user (patient or doctor)
     """
     try:
-        current_user_id = get_jwt_identity()
-        user_type = get_jwt().get('user_type', 'user')
+        current_user_identity = get_jwt_identity()
+        
+        # Extract user ID from identity object
+        if isinstance(current_user_identity, dict):
+            current_user_id = current_user_identity.get('id')
+            user_type = current_user_identity.get('type', 'user')
+        else:
+            current_user_id = current_user_identity
+            user_type = 'user'
         
         if user_type == 'doctor':
             # Doctor statistics
@@ -812,9 +819,12 @@ def get_appointment_stats():
                 doctor_id=current_user_id, status='cancelled'
             ).count()
             
-            # Today's appointments
+            # Today's appointments - FIXED JOIN
             today = date.today()
-            todays_appointments = Appointment.query.join(TimeSlot).filter(
+            todays_appointments = Appointment.query.join(
+                TimeSlot, 
+                Appointment.time_slot_id == TimeSlot.id  # Explicit join condition
+            ).filter(
                 Appointment.doctor_id == current_user_id,
                 TimeSlot.date == today
             ).count()
@@ -834,7 +844,12 @@ def get_appointment_stats():
             completed_appointments = Appointment.query.filter_by(
                 patient_id=current_user_id, status='completed'
             ).count()
-            upcoming_appointments = Appointment.query.join(TimeSlot).filter(
+            
+            # Upcoming appointments - FIXED JOIN
+            upcoming_appointments = Appointment.query.join(
+                TimeSlot, 
+                Appointment.time_slot_id == TimeSlot.id  # Explicit join condition
+            ).filter(
                 Appointment.patient_id == current_user_id,
                 Appointment.status.in_(['pending', 'confirmed']),
                 TimeSlot.date >= date.today()
@@ -846,11 +861,13 @@ def get_appointment_stats():
                 'upcoming_appointments': upcoming_appointments
             }
         
-        return jsonify({'stats': stats}), 200
+        return jsonify({'success': True, 'stats': stats}), 200
         
     except Exception as e:
         current_app.logger.error(f"Error getting appointment stats: {str(e)}")
-        return jsonify({'error': 'Failed to retrieve statistics'}), 500
+        print(f"❌ Error getting appointment stats: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to retrieve statistics'}), 500
+
 
 
 # Register error handlers
