@@ -30,7 +30,15 @@ def user_required(f):
     @jwt_required()
     def decorated(*args, **kwargs):
         try:
-            current_user_id = get_jwt_identity()
+            current_user_identity = get_jwt_identity()
+            
+            # Extract user ID from the identity object
+            if isinstance(current_user_identity, dict):
+                current_user_id = current_user_identity.get('id')
+                user_type = current_user_identity.get('type')
+            else:
+                current_user_id = current_user_identity
+                user_type = None
             
             # Check if it's a user/patient
             user = User.query.filter_by(id=current_user_id).first()
@@ -42,12 +50,21 @@ def user_required(f):
                     'message_ar': 'مطلوب تسجيل دخول المستخدم'
                 }), 401
             
+            # Verify user type
+            if user_type and user_type != 'user':
+                return jsonify({
+                    'success': False,
+                    'message': 'User access required',
+                    'message_ar': 'مطلوب وصول المستخدم'
+                }), 403
+            
             # Add user to kwargs for easy access in the route
             kwargs['current_user'] = user
             
             return f(*args, **kwargs)
             
         except Exception as e:
+            print(f"❌ Authentication error: {str(e)}")
             return jsonify({
                 'success': False,
                 'message': 'Authentication failed',
@@ -55,6 +72,7 @@ def user_required(f):
             }), 401
     
     return decorated
+
 
 
 def pharmacy_required(f):
