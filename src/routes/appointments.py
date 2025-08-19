@@ -223,13 +223,13 @@ def get_user_appointments(**kwargs):
         per_page = min(int(request.args.get('per_page', 10)), 100)
         
         # Build query
-        query = Appointment.query.filter_by(patient_id=current_user_id)
+        query = Appointment.query.join(
+            TimeSlot, 
+            Appointment.time_slot_id == TimeSlot.id
+        ).filter(Appointment.patient_id == current_user.id)
         
-        if status:
-            query = query.filter_by(status=status)
-        
-        # Order by appointment date (through time slot)
-        query = query.join(TimeSlot).order_by(desc(TimeSlot.date), desc(TimeSlot.start_time))
+        # Order by appointment date - NO ADDITIONAL JOIN NEEDED
+        query = query.order_by(desc(TimeSlot.date), desc(TimeSlot.start_time))
         
         # Paginate
         appointments = query.paginate(
@@ -457,8 +457,14 @@ def get_doctor_appointments():
     Retrieve all appointments for the current doctor
     """
     try:
-        current_doctor_id = get_jwt_identity()
+        current_doctor_identity = get_jwt_identity()
         
+        # Extract doctor ID from identity object
+        if isinstance(current_doctor_identity, dict):
+            current_doctor_id = current_doctor_identity.get('id')
+        else:
+            current_doctor_id = current_doctor_identity
+
         # Query parameters
         status = request.args.get('status')
         date_from = request.args.get('date_from')
@@ -467,21 +473,24 @@ def get_doctor_appointments():
         per_page = min(int(request.args.get('per_page', 20)), 100)
         
         # Build query
-        query = Appointment.query.filter_by(doctor_id=current_doctor_id)
+        query = Appointment.query.join(
+            TimeSlot, 
+            Appointment.time_slot_id == TimeSlot.id
+        ).filter(Appointment.doctor_id == current_doctor_id)
         
         if status:
-            query = query.filter_by(status=status)
+            query = query.filter(Appointment.status == status)
         
         if date_from:
             date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-            query = query.join(TimeSlot).filter(TimeSlot.date >= date_from_obj)
+            query = query.filter(TimeSlot.date >= date_from_obj)
         
         if date_to:
             date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-            query = query.join(TimeSlot).filter(TimeSlot.date <= date_to_obj)
+            query = query.filter(TimeSlot.date <= date_to_obj)
         
-        # Order by appointment date
-        query = query.join(TimeSlot).order_by(asc(TimeSlot.date), asc(TimeSlot.start_time))
+        # Order by appointment date - NO ADDITIONAL JOIN NEEDED
+        query = query.order_by(asc(TimeSlot.date), asc(TimeSlot.start_time))
         
         # Paginate
         appointments = query.paginate(
