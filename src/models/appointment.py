@@ -269,7 +269,7 @@ class Appointment(db.Model):
     def get_appointment_DateTime(self):
         """Get appointment Date and time from time slot"""
         if self.time_slot:
-            return datetime.combine(self.time_slot.Date, self.time_slot.start_time)
+            return datetime.combine(self.time_slot.date, self.time_slot.start_time)
         return None
 
     def get_appointment_duration(self):
