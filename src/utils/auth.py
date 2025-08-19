@@ -76,73 +76,67 @@ def user_required(f):
 
 
 def pharmacy_required(f):
-    """
-    Decorator to require pharmacy authentication
-    """
     @wraps(f)
     @jwt_required()
     def decorated(*args, **kwargs):
         try:
-            current_user_id = get_jwt_identity()
+            current_user_identity = get_jwt_identity()
             
-            # Check if it's a pharmacy
+            # Extract pharmacy ID from the identity object
+            if isinstance(current_user_identity, dict):
+                current_user_id = current_user_identity.get('id')
+                user_type = current_user_identity.get('type')
+            else:
+                current_user_id = current_user_identity
+                user_type = None
+            
             pharmacy = Pharmacy.query.filter_by(id=current_user_id).first()
             
-            if not pharmacy:
+            if not pharmacy or (user_type and user_type != 'pharmacy'):
                 return jsonify({
                     'success': False,
-                    'message': 'Pharmacy authentication required',
-                    'message_ar': 'مطلوب تسجيل دخول الصيدلية'
+                    'message': 'Pharmacy authentication required'
                 }), 401
             
-            # Add pharmacy to kwargs for easy access in the route
             kwargs['current_pharmacy'] = pharmacy
-            
             return f(*args, **kwargs)
             
         except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': 'Authentication failed',
-                'message_ar': 'فشل في المصادقة'
-            }), 401
-    
+            return jsonify({'success': False, 'message': 'Authentication failed'}), 401
     return decorated
+
 
 
 def doctor_required(f):
-    """
-    Decorator to require doctor authentication
-    """
     @wraps(f)
     @jwt_required()
     def decorated(*args, **kwargs):
         try:
-            current_user_id = get_jwt_identity()
+            current_user_identity = get_jwt_identity()
             
-            # Check if it's a doctor
+            # Extract doctor ID from the identity object
+            if isinstance(current_user_identity, dict):
+                current_user_id = current_user_identity.get('id')
+                user_type = current_user_identity.get('type')
+            else:
+                current_user_id = current_user_identity
+                user_type = None
+            
             doctor = Doctor.query.filter_by(id=current_user_id).first()
             
-            if not doctor:
+            if not doctor or (user_type and user_type != 'doctor'):
                 return jsonify({
                     'success': False,
-                    'message': 'Doctor authentication required',
-                    'message_ar': 'مطلوب تسجيل دخول الطبيب'
+                    'message': 'Doctor authentication required'
                 }), 401
             
-            # Add doctor to kwargs for easy access in the route
             kwargs['current_doctor'] = doctor
-            
             return f(*args, **kwargs)
             
         except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': 'Authentication failed',
-                'message_ar': 'فشل في المصادقة'
-            }), 401
-    
+            return jsonify({'success': False, 'message': 'Authentication failed'}), 401
     return decorated
+
 
 
 def admin_required(f):
