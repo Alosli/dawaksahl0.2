@@ -266,7 +266,7 @@ class Appointment(db.Model):
     # ================================
     # UTILITY METHODS
     # ================================
-    def get_appointment_DateTime(self):
+    def get_appointment_datetime(self):
         """Get appointment Date and time from time slot"""
         if self.time_slot:
             return datetime.combine(self.time_slot.date, self.time_slot.start_time)
