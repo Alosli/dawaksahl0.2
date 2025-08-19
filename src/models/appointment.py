@@ -390,7 +390,7 @@ class Appointment(db.Model):
 
     def to_dict(self, include_sensitive=False):
         """Convert appointment to dictionary"""
-        appointment_dateTime = self.get_appointment_dateTime()
+        appointment_datetime = self.get_appointment_datetime()
         
         data = {
             'id': self.id,
