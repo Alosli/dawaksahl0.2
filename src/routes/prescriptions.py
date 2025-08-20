@@ -6,7 +6,7 @@ import os
 from werkzeug.utils import secure_filename
 
 from src.models import db
-from src.models.prescription import Prescription, PrescriptionMedication
+from src.models.prescription import Prescription, PrescriptionMedication, PrescriptionType, PrescriptionStatus
 from src.models.user import User
 from src.models.pharmacy import Pharmacy
 from src.models.product import Product
