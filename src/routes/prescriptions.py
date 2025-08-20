@@ -660,4 +660,236 @@ def get_prescription_stats():
             'message': f'Error fetching prescription stats: {str(e)}',
             'message_ar': 'خطأ في جلب إحصائيات الوصفات'
         }), 500
+@prescriptions_bp.route('/prescriptions/doctor', methods=['GET'])
+@jwt_required()
+def get_doctor_prescriptions():
+    """
+    🏥 GET DOCTOR'S PRESCRIPTIONS
+    Retrieve all prescriptions created by the current doctor
+    """
+    try:
+        # Get current doctor from JWT
+        jwt_data = get_jwt_identity()
+        
+        # Extract doctor ID from JWT identity
+        if isinstance(jwt_data, dict):
+            current_doctor_id = jwt_data.get('id')
+            user_type = jwt_data.get('type', 'user')
+        else:
+            current_doctor_id = jwt_data
+            user_type = 'doctor'  # Assume doctor if not specified
+        
+        # Verify this is a doctor
+        if user_type != 'doctor':
+            return jsonify({
+                'success': False,
+                'message': 'Doctor authentication required',
+                'message_ar': 'مصادقة الطبيب مطلوبة'
+            }), 401
+        
+        # Query parameters
+        page = int(request.args.get('page', 1))
+        per_page = min(int(request.args.get('per_page', 10)), 50)
+        status = request.args.get('status')
+        prescription_type = request.args.get('type')
+        patient_name = request.args.get('patient_name')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        
+        # Build query - Filter by doctor_id
+        query = Prescription.query.filter_by(doctor_id=current_doctor_id)
+        
+        # Apply filters
+        if status:
+            query = query.filter(Prescription.status == status)
+        
+        if prescription_type:
+            query = query.filter(Prescription.prescription_type == prescription_type)
+        
+        if patient_name:
+            # Join with User table to search by patient name
+            from src.models.user import User
+            query = query.join(User, Prescription.patient_id == User.id).filter(
+                User.first_name.ilike(f'%{patient_name}%') |
+                User.last_name.ilike(f'%{patient_name}%')
+            )
+        
+        if date_from:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(Prescription.issue_date >= date_from_obj)
+        
+        if date_to:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
+            query = query.filter(Prescription.issue_date <= date_to_obj)
+        
+        # Order by creation date (newest first)
+        query = query.order_by(Prescription.created_at.desc())
+        
+        # Paginate results
+        prescriptions = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        # Get language preference
+        language = request.headers.get('Accept-Language', 'ar')
+        
+        # Prepare response data
+        prescription_data = []
+        for prescription in prescriptions.items:
+            # Get patient name
+            patient_name = f"{prescription.patient.first_name} {prescription.patient.last_name}" if prescription.patient else "Unknown Patient"
+            
+            prescription_dict = prescription.to_dict(include_doctor_info=False)  # Don't include doctor info since this is for the doctor
+            prescription_dict['patient_name'] = patient_name
+            prescription_dict['patient_phone'] = prescription.patient.phone if prescription.patient else None
+            prescription_dict['medication_count'] = len(prescription.medications)
+            
+            prescription_data.append(prescription_dict)
+        
+        # Calculate statistics
+        total_prescriptions = Prescription.query.filter_by(doctor_id=current_doctor_id).count()
+        pending_prescriptions = Prescription.query.filter_by(
+            doctor_id=current_doctor_id, 
+            status=PrescriptionStatus.PENDING
+        ).count()
+        filled_prescriptions = Prescription.query.filter_by(
+            doctor_id=current_doctor_id, 
+            status=PrescriptionStatus.FILLED
+        ).count()
+        
+        # Today's prescriptions
+        today = datetime.now().date()
+        todays_prescriptions = Prescription.query.filter(
+            Prescription.doctor_id == current_doctor_id,
+            db.func.date(Prescription.issue_date) == today
+        ).count()
+        
+        return jsonify({
+            'success': True,
+            'prescriptions': prescription_data,
+            'stats': {
+                'total_prescriptions': total_prescriptions,
+                'pending_prescriptions': pending_prescriptions,
+                'filled_prescriptions': filled_prescriptions,
+                'todays_prescriptions': todays_prescriptions
+            },
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': prescriptions.total,
+                'pages': prescriptions.pages,
+                'has_next': prescriptions.has_next,
+                'has_prev': prescriptions.has_prev
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting doctor prescriptions: {str(e)}")
+        print(f"❌ Error getting doctor prescriptions: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching prescriptions: {str(e)}',
+            'message_ar': 'خطأ في جلب الوصفات الطبية'
+        }), 500
+
+
+# ALSO ADD THIS ENDPOINT FOR PRESCRIPTION STATISTICS
+@prescriptions_bp.route('/prescriptions/doctor/stats', methods=['GET'])
+@jwt_required()
+def get_doctor_prescription_stats():
+    """
+    📊 GET DOCTOR'S PRESCRIPTION STATISTICS
+    Get detailed statistics for doctor's prescriptions
+    """
+    try:
+        # Get current doctor from JWT
+        jwt_data = get_jwt_identity()
+        
+        if isinstance(jwt_data, dict):
+            current_doctor_id = jwt_data.get('id')
+            user_type = jwt_data.get('type', 'user')
+        else:
+            current_doctor_id = jwt_data
+            user_type = 'doctor'
+        
+        if user_type != 'doctor':
+            return jsonify({
+                'success': False,
+                'message': 'Doctor authentication required',
+                'message_ar': 'مصادقة الطبيب مطلوبة'
+            }), 401
+        
+        # Calculate comprehensive statistics
+        total_prescriptions = Prescription.query.filter_by(doctor_id=current_doctor_id).count()
+        
+        # Status-based counts
+        pending_count = Prescription.query.filter_by(
+            doctor_id=current_doctor_id, 
+            status=PrescriptionStatus.PENDING
+        ).count()
+        
+        verified_count = Prescription.query.filter_by(
+            doctor_id=current_doctor_id, 
+            status=PrescriptionStatus.VERIFIED
+        ).count()
+        
+        filled_count = Prescription.query.filter_by(
+            doctor_id=current_doctor_id, 
+            status=PrescriptionStatus.FILLED
+        ).count()
+        
+        cancelled_count = Prescription.query.filter_by(
+            doctor_id=current_doctor_id, 
+            status=PrescriptionStatus.CANCELLED
+        ).count()
+        
+        # Time-based counts
+        today = datetime.now().date()
+        this_month = datetime.now().replace(day=1).date()
+        
+        todays_count = Prescription.query.filter(
+            Prescription.doctor_id == current_doctor_id,
+            db.func.date(Prescription.issue_date) == today
+        ).count()
+        
+        this_month_count = Prescription.query.filter(
+            Prescription.doctor_id == current_doctor_id,
+            Prescription.issue_date >= this_month
+        ).count()
+        
+        # Emergency prescriptions
+        emergency_count = Prescription.query.filter_by(
+            doctor_id=current_doctor_id,
+            is_emergency=True
+        ).count()
+        
+        # Controlled substances
+        controlled_count = Prescription.query.filter_by(
+            doctor_id=current_doctor_id,
+            is_controlled_substance=True
+        ).count()
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_prescriptions': total_prescriptions,
+                'pending_prescriptions': pending_count,
+                'verified_prescriptions': verified_count,
+                'filled_prescriptions': filled_count,
+                'cancelled_prescriptions': cancelled_count,
+                'todays_prescriptions': todays_count,
+                'this_month_prescriptions': this_month_count,
+                'emergency_prescriptions': emergency_count,
+                'controlled_prescriptions': controlled_count,
+                'fill_rate': (filled_count / total_prescriptions * 100) if total_prescriptions > 0 else 0
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting doctor prescription stats: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching prescription statistics: {str(e)}',
+            'message_ar': 'خطأ في جلب إحصائيات الوصفات الطبية'
+        }), 500
 
