@@ -451,11 +451,13 @@ def reschedule_appointment(appointment_id):
 @appointments_bp.route('/doctor', methods=['GET'])
 @jwt_required()
 @doctor_required
-def get_doctor_appointments():
+def get_doctor_appointments(**kwargs):
     """
     🏥 GET DOCTOR'S APPOINTMENTS
     Retrieve all appointments for the current doctor
     """
+
+    current_user = kwargs.get('current_doctor')
     try:
         current_doctor_identity = get_jwt_identity()
         
