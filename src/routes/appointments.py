@@ -855,6 +855,9 @@ def get_appointment_stats():
             completed_appointments = Appointment.query.filter_by(
                 patient_id=current_user_id, status='completed'
             ).count()
+            cancelled_appointments = Appointment.query.filter_by(
+                patient_id=current_user_id, status='cancelled'
+            ).count()
             
             # Upcoming appointments - FIXED JOIN
             upcoming_appointments = Appointment.query.join(
@@ -869,7 +872,8 @@ def get_appointment_stats():
             stats = {
                 'total_appointments': total_appointments,
                 'completed_appointments': completed_appointments,
-                'upcoming_appointments': upcoming_appointments
+                'upcoming_appointments': upcoming_appointments,
+                'cancelled_appointments': cancelled_appointments
             }
         
         return jsonify({'success': True, 'stats': stats}), 200
