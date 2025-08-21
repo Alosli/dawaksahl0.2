@@ -529,6 +529,391 @@ def get_doctor_appointments(**kwargs):
         return jsonify({'error': 'Failed to retrieve appointments'}), 500
 
 
+@appointments_bp.route('/<int:appointment_id>/doctor-action', methods=['POST'])
+@jwt_required()
+def doctor_appointment_action():
+    """
+    🩺 DOCTOR APPOINTMENT MANAGEMENT
+    Allows doctors to confirm, reject, complete, or update their appointments
+    """
+    try:
+        current_user_identity = get_jwt_identity()
+        
+        # Extract doctor ID from identity object
+        if isinstance(current_user_identity, dict):
+            current_doctor_id = current_user_identity.get('id')
+            user_type = current_user_identity.get('type', 'user')
+        else:
+            current_doctor_id = current_user_identity
+            user_type = 'doctor'
+        
+        if user_type != 'doctor':
+            return jsonify({
+                'success': False,
+                'message': 'Doctor authentication required',
+                'message_ar': 'مصادقة الطبيب مطلوبة'
+            }), 401
+        
+        appointment_id = request.view_args['appointment_id']
+        data = request.get_json()
+        
+        if not data or 'action' not in data:
+            return jsonify({
+                'success': False,
+                'message': 'Action is required',
+                'message_ar': 'الإجراء مطلوب'
+            }), 400
+        
+        action = data.get('action')  # 'confirm', 'reject', 'complete', 'update'
+        reason = data.get('reason', '')
+        notes = data.get('notes', '')
+        new_time_slot_id = data.get('new_time_slot_id')
+        
+        # Get the appointment
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'message': 'Appointment not found',
+                'message_ar': 'الموعد غير موجود'
+            }), 404
+        
+        # Verify doctor owns this appointment
+        if appointment.doctor_id != current_doctor_id:
+            return jsonify({
+                'success': False,
+                'message': 'You can only manage your own appointments',
+                'message_ar': 'يمكنك إدارة مواعيدك فقط'
+            }), 403
+        
+        # Handle different actions
+        if action == 'confirm':
+            if appointment.status != 'pending':
+                return jsonify({
+                    'success': False,
+                    'message': 'Only pending appointments can be confirmed',
+                    'message_ar': 'يمكن تأكيد المواعيد المعلقة فقط'
+                }), 400
+            
+            appointment.status = 'confirmed'
+            appointment.confirmed_at = datetime.utcnow()
+            if notes:
+                appointment.doctor_notes = notes
+            
+            # TODO: Send notification to patient
+            notification_message = f"تم تأكيد موعدك مع الدكتور {appointment.doctor.name}"
+            
+        elif action == 'reject':
+            if appointment.status not in ['pending', 'confirmed']:
+                return jsonify({
+                    'success': False,
+                    'message': 'Cannot reject this appointment',
+                    'message_ar': 'لا يمكن رفض هذا الموعد'
+                }), 400
+            
+            appointment.status = 'cancelled'
+            appointment.cancelled_at = datetime.utcnow()
+            appointment.cancellation_reason = reason or 'Rejected by doctor'
+            if notes:
+                appointment.doctor_notes = notes
+            
+            # TODO: Send notification to patient
+            notification_message = f"تم رفض موعدك مع الدكتور {appointment.doctor.name}. السبب: {reason}"
+            
+        elif action == 'complete':
+            if appointment.status != 'confirmed':
+                return jsonify({
+                    'success': False,
+                    'message': 'Only confirmed appointments can be completed',
+                    'message_ar': 'يمكن إكمال المواعيد المؤكدة فقط'
+                }), 400
+            
+            appointment.status = 'completed'
+            appointment.completed_at = datetime.utcnow()
+            if notes:
+                appointment.doctor_notes = notes
+            
+            # TODO: Send notification to patient
+            notification_message = f"تم إكمال موعدك مع الدكتور {appointment.doctor.name}"
+            
+        elif action == 'reschedule':
+            if appointment.status not in ['pending', 'confirmed']:
+                return jsonify({
+                    'success': False,
+                    'message': 'Cannot reschedule this appointment',
+                    'message_ar': 'لا يمكن إعادة جدولة هذا الموعد'
+                }), 400
+            
+            if not new_time_slot_id:
+                return jsonify({
+                    'success': False,
+                    'message': 'New time slot is required for rescheduling',
+                    'message_ar': 'الوقت الجديد مطلوب لإعادة الجدولة'
+                }), 400
+            
+            # Verify new time slot exists and is available
+            new_time_slot = TimeSlot.query.get(new_time_slot_id)
+            if not new_time_slot or not new_time_slot.is_available:
+                return jsonify({
+                    'success': False,
+                    'message': 'Selected time slot is not available',
+                    'message_ar': 'الوقت المحدد غير متاح'
+                }), 400
+            
+            # Free up old time slot
+            if appointment.time_slot:
+                appointment.time_slot.is_available = True
+            
+            # Assign new time slot
+            appointment.time_slot_id = new_time_slot_id
+            new_time_slot.is_available = False
+            appointment.rescheduled_at = datetime.utcnow()
+            if notes:
+                appointment.doctor_notes = notes
+            
+            # TODO: Send notification to patient
+            notification_message = f"تم إعادة جدولة موعدك مع الدكتور {appointment.doctor.name} إلى {new_time_slot.date} {new_time_slot.start_time}"
+            
+        elif action == 'update':
+            # Update appointment details
+            if notes:
+                appointment.doctor_notes = notes
+            
+            # Allow updating other fields as needed
+            if 'consultation_mode' in data:
+                appointment.consultation_mode = data['consultation_mode']
+            
+            notification_message = f"تم تحديث تفاصيل موعدك مع الدكتور {appointment.doctor.name}"
+            
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid action',
+                'message_ar': 'إجراء غير صحيح'
+            }), 400
+        
+        # Save changes
+        db.session.commit()
+        
+        # TODO: Create notification record in database
+        # notification = Notification(
+        #     user_id=appointment.patient_id,
+        #     message=notification_message,
+        #     type='appointment_update',
+        #     appointment_id=appointment.id
+        # )
+        # db.session.add(notification)
+        # db.session.commit()
+        
+        # Return updated appointment
+        appointment_data = {
+            'id': appointment.id,
+            'patient_name': f"{appointment.patient.first_name} {appointment.patient.last_name}",
+            'patient_id': appointment.patient_id,
+            'doctor_id': appointment.doctor_id,
+            'time_slot_id': appointment.time_slot_id,
+            'appointment_date': appointment.time_slot.date.isoformat() if appointment.time_slot else None,
+            'appointment_time': appointment.time_slot.start_time.strftime('%H:%M') if appointment.time_slot else None,
+            'status': appointment.status,
+            'consultation_mode': appointment.consultation_mode,
+            'reason': appointment.reason,
+            'doctor_notes': appointment.doctor_notes,
+            'created_at': appointment.created_at.isoformat(),
+            'confirmed_at': appointment.confirmed_at.isoformat() if appointment.confirmed_at else None,
+            'completed_at': appointment.completed_at.isoformat() if appointment.completed_at else None,
+            'cancelled_at': appointment.cancelled_at.isoformat() if appointment.cancelled_at else None,
+            'rescheduled_at': appointment.rescheduled_at.isoformat() if appointment.rescheduled_at else None
+        }
+        
+        return jsonify({
+            'success': True,
+            'message': f'Appointment {action}ed successfully',
+            'message_ar': f'تم {action} الموعد بنجاح',
+            'appointment': appointment_data,
+            'notification_sent': True
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error in doctor appointment action: {str(e)}")
+        print(f"❌ Error in doctor appointment action: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error processing appointment action: {str(e)}',
+            'message_ar': 'خطأ في معالجة إجراء الموعد'
+        }), 500
+
+
+@appointments_bp.route('/<int:appointment_id>/doctor-cancel', methods=['POST'])
+@jwt_required()
+def doctor_cancel_appointment(appointment_id):
+    """
+    🚫 DOCTOR CANCEL APPOINTMENT
+    Simplified endpoint for doctors to cancel appointments
+    """
+    try:
+        current_user_identity = get_jwt_identity()
+        
+        # Extract doctor ID from identity object
+        if isinstance(current_user_identity, dict):
+            current_doctor_id = current_user_identity.get('id')
+            user_type = current_user_identity.get('type', 'user')
+        else:
+            current_doctor_id = current_user_identity
+            user_type = 'doctor'
+        
+        if user_type != 'doctor':
+            return jsonify({
+                'success': False,
+                'message': 'Doctor authentication required',
+                'message_ar': 'مصادقة الطبيب مطلوبة'
+            }), 401
+        
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Cancelled by doctor')
+        
+        # Get the appointment
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'message': 'Appointment not found',
+                'message_ar': 'الموعد غير موجود'
+            }), 404
+        
+        # Verify doctor owns this appointment
+        if appointment.doctor_id != current_doctor_id:
+            return jsonify({
+                'success': False,
+                'message': 'You can only cancel your own appointments',
+                'message_ar': 'يمكنك إلغاء مواعيدك فقط'
+            }), 403
+        
+        # Check if appointment can be cancelled
+        if appointment.status in ['completed', 'cancelled']:
+            return jsonify({
+                'success': False,
+                'message': 'Cannot cancel this appointment',
+                'message_ar': 'لا يمكن إلغاء هذا الموعد'
+            }), 400
+        
+        # Cancel the appointment
+        appointment.status = 'cancelled'
+        appointment.cancelled_at = datetime.utcnow()
+        appointment.cancellation_reason = reason
+        
+        # Free up the time slot
+        if appointment.time_slot:
+            appointment.time_slot.is_available = True
+        
+        # Save changes
+        db.session.commit()
+        
+        # TODO: Send notification to patient
+        notification_message = f"تم إلغاء موعدك مع الدكتور {appointment.doctor.name}. السبب: {reason}"
+        
+        return jsonify({
+            'success': True,
+            'message': 'Appointment cancelled successfully',
+            'message_ar': 'تم إلغاء الموعد بنجاح',
+            'appointment_id': appointment.id,
+            'notification_sent': True
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error cancelling appointment: {str(e)}")
+        print(f"❌ Error cancelling appointment: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error cancelling appointment: {str(e)}',
+            'message_ar': 'خطأ في إلغاء الموعد'
+        }), 500
+
+
+@appointments_bp.route('/<int:appointment_id>/doctor-confirm', methods=['POST'])
+@jwt_required()
+def doctor_confirm_appointment(appointment_id):
+    """
+    ✅ DOCTOR CONFIRM APPOINTMENT
+    Simplified endpoint for doctors to confirm appointments
+    """
+    try:
+        current_user_identity = get_jwt_identity()
+        
+        # Extract doctor ID from identity object
+        if isinstance(current_user_identity, dict):
+            current_doctor_id = current_user_identity.get('id')
+            user_type = current_user_identity.get('type', 'user')
+        else:
+            current_doctor_id = current_user_identity
+            user_type = 'doctor'
+        
+        if user_type != 'doctor':
+            return jsonify({
+                'success': False,
+                'message': 'Doctor authentication required',
+                'message_ar': 'مصادقة الطبيب مطلوبة'
+            }), 401
+        
+        data = request.get_json() or {}
+        notes = data.get('notes', '')
+        
+        # Get the appointment
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'message': 'Appointment not found',
+                'message_ar': 'الموعد غير موجود'
+            }), 404
+        
+        # Verify doctor owns this appointment
+        if appointment.doctor_id != current_doctor_id:
+            return jsonify({
+                'success': False,
+                'message': 'You can only confirm your own appointments',
+                'message_ar': 'يمكنك تأكيد مواعيدك فقط'
+            }), 403
+        
+        # Check if appointment can be confirmed
+        if appointment.status != 'pending':
+            return jsonify({
+                'success': False,
+                'message': 'Only pending appointments can be confirmed',
+                'message_ar': 'يمكن تأكيد المواعيد المعلقة فقط'
+            }), 400
+        
+        # Confirm the appointment
+        appointment.status = 'confirmed'
+        appointment.confirmed_at = datetime.utcnow()
+        if notes:
+            appointment.doctor_notes = notes
+        
+        # Save changes
+        db.session.commit()
+        
+        # TODO: Send notification to patient
+        notification_message = f"تم تأكيد موعدك مع الدكتور {appointment.doctor.name}"
+        
+        return jsonify({
+            'success': True,
+            'message': 'Appointment confirmed successfully',
+            'message_ar': 'تم تأكيد الموعد بنجاح',
+            'appointment_id': appointment.id,
+            'notification_sent': True
+        }), 200
+        
+    except Exception e:
+        db.session.rollback()
+        current_app.logger.error(f"Error confirming appointment: {str(e)}")
+        print(f"❌ Error confirming appointment: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error confirming appointment: {str(e)}',
+            'message_ar': 'خطأ في تأكيد الموعد'
+        }), 500
+
 @appointments_bp.route('/<int:appointment_id>/confirm', methods=['POST'])
 @jwt_required()
 @doctor_required
