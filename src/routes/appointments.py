@@ -904,7 +904,7 @@ def doctor_confirm_appointment(appointment_id):
             'notification_sent': True
         }), 200
         
-    except Exception e:
+    except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error confirming appointment: {str(e)}")
         print(f"❌ Error confirming appointment: {str(e)}")
